@@ -94,7 +94,7 @@ function render(){
   var r = buildResult();
   $("dash").innerHTML = HC.renderDashboard(r);
   $("perf").innerHTML = HC.renderPerformance(r);
-  $("journal").innerHTML = HC.renderJournal(r.closedTrades, CUR.ann); wireJournal();
+  $("journal").innerHTML = renderPositions() + HC.renderJournal(r.closedTrades, CUR.ann); wireJournal();
   $("screener").innerHTML = HC.renderScreenerShell();
 }
 
@@ -110,6 +110,71 @@ function wireJournal(){
       $("journal").innerHTML = HC.renderJournal(buildResult().closedTrades, CUR.ann); wireJournal();
     });
   });
+}
+
+/* ---- open positions (parcels) + inline add/close ---- */
+var POSLIST = [];
+function pesc(s){ return (""+s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+function pround(n){ return Math.round(n).toLocaleString(); }
+function pprice(n){ if(!n) return "—"; var dp = Math.abs(n) >= 1 ? 2 : 4;
+  return "$" + n.toLocaleString("en-AU",{minimumFractionDigits:dp, maximumFractionDigits:dp}); }
+function pdate(d){ var m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return d.getUTCDate()+" "+m[d.getUTCMonth()]+" "+(""+d.getUTCFullYear()).slice(2); }
+function renderPositions(){
+  POSLIST = [];
+  var secs = HC.SECURITIES, M = HC.money;
+  var method = $("optimise") && $("optimise").checked ? "min_tax" : "fifo";
+  var acc = selectedAccount();
+  var names = {}; CUR.trades.forEach(function(t){ names[t.account||"Default"]=1; });
+  var list = Object.keys(names).sort();
+  if(acc !== "__all__") list = [acc];
+  if(!list.length) return "";
+  var html = '<h2 style="margin-top:6px">Open positions</h2>';
+  list.forEach(function(name){
+    var trades = CUR.trades.filter(function(t){ return (t.account||"Default")===name; });
+    var m = HC.matchParcels(secs, trades, new HC.Account({}), method);
+    var tickers = Object.keys(m.open).filter(function(tk){ return m.open[tk].some(function(l){return l.qtyOpen>1e-9;}); });
+    html += '<div class="card"><h3 style="margin:0 0 8px">'+pesc(name)+'</h3>';
+    if(!tickers.length){ html += '<p class="muted small">No open positions in this portfolio.</p></div>'; return; }
+    html += '<table><tr><th>Holding</th><th class=r>Qty</th><th class=r>Avg fill</th><th class=r>Last</th><th class=r>Value</th><th class=r>Unrealised</th><th></th></tr>';
+    tickers.forEach(function(tk){
+      var lots = m.open[tk].filter(function(l){return l.qtyOpen>1e-9;});
+      var qty = lots.reduce(function(s,l){return s+l.qtyOpen;},0);
+      var cost = lots.reduce(function(s,l){return s+l.qtyOpen*l.unitCost;},0);
+      var sec = secs[tk] || {px:0,fx:1,name:tk};
+      var last = (sec.px||0)*(sec.fx||1), value = qty*last, avg = cost/qty, unreal = value-cost;
+      var i = POSLIST.length; POSLIST.push({ticker:tk, account:name});
+      var uc = unreal>=0 ? "pos" : "neg";
+      html += '<tr><td><b>'+pesc(sec.name||tk)+'</b> <span class="muted small">'+tk+'</span></td>'
+        + '<td class=r>'+pround(qty)+'</td><td class=r>'+pprice(avg)+'</td><td class=r>'+pprice(last)+'</td>'
+        + '<td class=r>'+(value?M(value):"—")+'</td><td class="r '+uc+'">'+(value?((unreal>=0?"+":"")+M(unreal)):"—")+'</td>'
+        + '<td class=r><button class="btn ghost sm" onclick="togglePosForm('+i+')">Add / close</button></td></tr>';
+      html += '<tr><td colspan=7 style="border-top:0;padding-top:0">'
+        + '<div class="muted small">Parcels: '+lots.map(function(l){return pround(l.qtyOpen)+' @ '+pprice(l.unitCost)+' ('+pdate(l.acquired)+')';}).join('&nbsp; · &nbsp;')+'</div>'
+        + '<div id="pf-'+i+'" style="display:none;margin-top:8px">'
+        + '<select id="pf-'+i+'-side"><option>BUY</option><option>SELL</option></select> '
+        + '<input id="pf-'+i+'-qty" type="number" placeholder="qty" style="width:80px"> '
+        + '<input id="pf-'+i+'-price" type="number" placeholder="price" style="width:90px"> '
+        + '<input id="pf-'+i+'-date" type="date" style="width:150px"> '
+        + '<button class="btn sm" onclick="submitPos('+i+')">Save</button>'
+        + '<span class="muted small" style="margin-left:8px">BUY = add to position, SELL = close / trim</span></div></td></tr>';
+    });
+    html += '</table></div>';
+  });
+  html += '<h2>Closed trades</h2>';
+  return html;
+}
+function togglePosForm(i){ var f=$("pf-"+i); if(!f) return;
+  f.style.display = f.style.display==="none" ? "block" : "none";
+  if(f.style.display==="block" && !$("pf-"+i+"-date").value) $("pf-"+i+"-date").value = new Date().toISOString().slice(0,10);
+}
+async function submitPos(i){
+  var p = POSLIST[i]; if(!p) return;
+  var side=$("pf-"+i+"-side").value, qty=parseFloat($("pf-"+i+"-qty").value), price=parseFloat($("pf-"+i+"-price").value), d=$("pf-"+i+"-date").value;
+  if(!(qty>0)||!(price>=0)||!d){ alert("Enter quantity, price and date."); return; }
+  var fx=(HC.SECURITIES[p.ticker]&&HC.SECURITIES[p.ticker].fx)||1.0;
+  try{ await API.addTrade({date:d,ticker:p.ticker,action:side,qty:qty,price:price,brokerage:0,fx:fx,account:p.account}); await loadApp(); }
+  catch(e){ alert("Could not save: "+String(e).slice(0,100)); }
 }
 
 /* ---- screener ---- */
