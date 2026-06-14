@@ -19,6 +19,7 @@ var API = (function () {
     accounts:()=>j("GET","/accounts"),
     portfolios:()=>j("GET","/portfolios"),
     createPortfolio:(name)=>j("POST","/portfolios",{name}),
+    movePosition:(ticker,account,to)=>j("POST","/portfolio/move",{ticker,account,to}),
     addTrade:(t)=>j("POST","/portfolio/trade",t),
     importFiles:(files,account)=>j("POST","/portfolio/import",{files,account}),
     refreshPrices:()=>j("POST","/prices/refresh"),

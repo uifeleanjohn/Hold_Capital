@@ -29,10 +29,16 @@ async function loadApp(){
     s.px = p.price; s.fx = p.fx; HC.SECURITIES[p.ticker] = s;
   });
   CUR.trades = pf.trades.map(function(t){ return { date: new Date(t.date + "T00:00:00Z"), ticker: t.ticker,
-    action: t.action, qty: t.qty, price: t.price, brokerage: t.brokerage || 0, fx: t.fx || 1, account: t.account || "Default" }; });
+    action: t.action, qty: t.qty, price: t.price, brokerage: t.brokerage || 0, fx: t.fx || 1, account: t.account || "All holdings" }; });
   CUR.divs = pf.dividends.map(function(d){ var o = { date: new Date(d.date + "T00:00:00Z"), ticker: d.ticker,
-    cash: d.cash, franking: d.franking || 0, withholding: d.withholding || 0, fx: d.fx || 1, account: d.account || "Default" };
+    cash: d.cash, franking: d.franking || 0, withholding: d.withholding || 0, fx: d.fx || 1, account: d.account || "All holdings" };
     if(d.franking_credit != null) o.franking_credit = d.franking_credit; return o; });
+  // infer exchange for tickers not in the built-in list (so logos resolve): non-AUD -> US, else ASX
+  CUR.trades.forEach(function(t){
+    var s = HC.SECURITIES[t.ticker];
+    if(!s){ s = {name:t.ticker, exchange:"?", tag:"Unknown", ccy:"AUD", px:0, fx:t.fx||1}; HC.SECURITIES[t.ticker]=s; }
+    if(!s.exchange || s.exchange==="?") s.exchange = (t.fx && t.fx>1.01) ? "NASDAQ" : "ASX";
+  });
   try{ fillPortfolios(await API.portfolios()); }catch(e){}
   try{ var notes = await API.journal(); CUR.ann = {};
     notes.forEach(function(n){ CUR.ann[n.trade_key] = {setup:n.setup, confidence:n.confidence, notes:n.notes}; });
@@ -68,15 +74,17 @@ function onAccountFilter(){
   if(a !== "__all__"){ if($("m-account")) $("m-account").value = a; if($("imp-account")) $("imp-account").value = a; }
   render();
 }
+var PORTFOLIOS = [];
 function pfOpt(a){ return '<option>'+a+'</option>'; }
 function fillPortfolios(list){
-  if(!list || !list.length) list = ["Default"];
+  if(!list || !list.length) list = ["All holdings"];
+  PORTFOLIOS = list;
   var f=$("acct-filter");
   if(f){ var cf=f.value; f.innerHTML='<option value="__all__">All accounts</option>'+list.map(pfOpt).join("");
     f.value = (cf==="__all__"||list.indexOf(cf)>=0)?cf:"__all__"; }
   ["m-account","imp-account"].forEach(function(id){ var s=$(id); if(!s) return; var cv=s.value;
     s.innerHTML=list.map(pfOpt).join("");
-    s.value = list.indexOf(cv)>=0 ? cv : (list.indexOf("Default")>=0?"Default":list[0]); });
+    s.value = list.indexOf(cv)>=0 ? cv : (list.indexOf("All holdings")>=0?"All holdings":list[0]); });
   var L=$("portfolio-list");
   if(L) L.innerHTML=list.map(function(a){ return '<span class="pill" style="margin:0 5px 5px 0;display:inline-block">'+a+'</span>'; }).join("");
 }
@@ -153,30 +161,41 @@ function renderPositions(){
       var tk=r.tk, sec=r.sec, lots=r.lots;
       var i = POSLIST.length; POSLIST.push({ticker:tk, account:name});
       var uc = r.unreal>=0 ? "pos" : "neg", upct = r.cost ? r.unreal/r.cost*100 : 0;
-      html += '<tr><td><div style="display:flex;align-items:center;gap:9px">'+(HC.avatar?HC.avatar(tk):'')+'<div><b>'+pesc(sec.name||tk)+'</b><div class="muted" style="font-size:11px">'+tk+'</div></div></div></td>'
+      var pc = lots.length;
+      html += '<tr><td><div style="display:flex;align-items:center;gap:9px">'+(HC.avatar?HC.avatar(tk):'')
+        + '<div><b>'+pesc(sec.name||tk)+'</b><div class="muted" style="font-size:11px">'+tk+' · <a href="#" onclick="toggleDet('+i+');return false" style="color:var(--text2);text-decoration:none">'+pc+' parcel'+(pc>1?'s':'')+' &#9662;</a></div></div></div></td>'
         + '<td class=r>'+pround(r.qty)+'</td><td class=r>'+pprice(r.avg)+'</td><td class=r>'+pprice(r.last)+'</td>'
         + '<td class=r>'+(r.value?M(r.value):"—")+'</td>'
         + '<td class="r '+uc+'">'+(r.value?((r.unreal>=0?"+":"")+M(r.unreal)+' <span style="font-weight:400;font-size:11px">('+(upct>=0?"+":"")+upct.toFixed(1)+'%)</span>'):"—")+'</td>'
-        + '<td class=r><button class="btn ghost sm" onclick="togglePosForm('+i+')">Add / close</button></td></tr>';
-      html += '<tr><td colspan=7 style="border-top:0;padding-top:0;padding-bottom:14px">'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:2px">Parcels</span>'
-        + lots.map(function(l){return '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:3px 9px;font-size:12px;color:var(--text2)"><b style="color:var(--text)">'+pround(l.qtyOpen)+'</b> @ '+pprice(l.unitCost)+' · '+pdate(l.acquired)+'</span>';}).join("")+'</div>'
-        + '<div id="pf-'+i+'" style="display:none;margin-top:10px">'
+        + '<td class=r><button class="btn ghost sm" onclick="toggleDet('+i+')">Manage</button></td></tr>';
+      var moveOpts = PORTFOLIOS.filter(function(p){return p!==name;}).map(function(p){return '<option>'+p+'</option>';}).join("");
+      html += '<tr id="det-'+i+'" style="display:none"><td colspan=7 style="border-top:0;padding:0 0 14px;background:var(--surface2)">'
+        + '<div style="padding:12px 12px 0"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px">'
+        + '<span class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:2px">Parcels</span>'
+        + lots.map(function(l){return '<span style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:3px 9px;font-size:12px;color:var(--text2)"><b style="color:var(--text)">'+pround(l.qtyOpen)+'</b> @ '+pprice(l.unitCost)+' · '+pdate(l.acquired)+'</span>';}).join("")+'</div>'
+        + '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end">'
+        + '<div><div class="muted" style="font-size:11px;margin-bottom:5px">Add to / close position</div>'
         + '<select id="pf-'+i+'-side"><option>BUY</option><option>SELL</option></select> '
         + '<input id="pf-'+i+'-qty" type="number" placeholder="qty" style="width:80px"> '
         + '<input id="pf-'+i+'-price" type="number" placeholder="price" style="width:90px"> '
         + '<input id="pf-'+i+'-date" type="date" style="width:150px"> '
-        + '<button class="btn sm" onclick="submitPos('+i+')">Save</button>'
-        + '<span class="muted small" style="margin-left:8px">BUY adds · SELL closes/trims</span></div></td></tr>';
+        + '<button class="btn sm" onclick="submitPos('+i+')">Save</button></div>'
+        + (moveOpts ? '<div><div class="muted" style="font-size:11px;margin-bottom:5px">Move to portfolio</div>'
+            + '<select id="pf-'+i+'-move">'+moveOpts+'</select> <button class="btn ghost sm" onclick="movePos('+i+')">Move</button></div>' : '')
+        + '</div></div></td></tr>';
     });
     html += '</table></div>';
   });
   html += '<h2>Closed trades</h2>';
   return html;
 }
-function togglePosForm(i){ var f=$("pf-"+i); if(!f) return;
-  f.style.display = f.style.display==="none" ? "block" : "none";
-  if(f.style.display==="block" && !$("pf-"+i+"-date").value) $("pf-"+i+"-date").value = new Date().toISOString().slice(0,10);
+function toggleDet(i){ var d=$("det-"+i); if(!d) return;
+  d.style.display = d.style.display==="none" ? "table-row" : "none";
+  var dt=$("pf-"+i+"-date"); if(d.style.display!=="none" && dt && !dt.value) dt.value = new Date().toISOString().slice(0,10);
+}
+async function movePos(i){ var p=POSLIST[i]; if(!p) return; var to=$("pf-"+i+"-move").value; if(!to) return;
+  try{ await API.movePosition(p.ticker, p.account, to); await loadApp(); }
+  catch(e){ alert("Move failed: "+String(e).slice(0,100)); }
 }
 async function submitPos(i){
   var p = POSLIST[i]; if(!p) return;
@@ -235,7 +254,7 @@ async function addTrade(){
   var qty=parseFloat($("m-qty").value), px=parseFloat($("m-price").value);
   if(!d||!tk||!(qty>0)||!(px>=0)){ alert("Enter date, ticker, quantity and price."); return; }
   var fx=(HC.SECURITIES[tk]&&HC.SECURITIES[tk].fx)||1.0;
-  var acct=($("m-account")&&$("m-account").value)||"Default";
+  var acct=($("m-account")&&$("m-account").value)||"All holdings";
   await API.addTrade({date:d,ticker:tk,action:$("m-action").value,qty:qty,price:px,brokerage:parseFloat($("m-brk").value)||0,fx:fx,account:acct});
   $("m-ticker").value=$("m-qty").value=$("m-price").value=$("m-brk").value="";
   await loadApp();
@@ -244,7 +263,7 @@ function importFiles(){
   var fs=[].slice.call($("files").files); if($("statement").files.length) fs.push($("statement").files[0]);
   if($("holdings").files.length) fs.push($("holdings").files[0]);
   if(!fs.length){ alert("Choose a CSV first."); return; }
-  var acct=($("imp-account")&&$("imp-account").value)||"Default";
+  var acct=($("imp-account")&&$("imp-account").value)||"All holdings";
   var texts=[], done=0;
   fs.forEach(function(f){ var rd=new FileReader();
     rd.onload=async function(){ texts.push(rd.result); if(++done===fs.length){ await API.importFiles(texts, acct); await loadApp(); } };

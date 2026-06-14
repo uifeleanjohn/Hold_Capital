@@ -40,8 +40,10 @@ def _ensure_columns():
         "ALTER TABLE users ADD COLUMN inbox_token VARCHAR(32)",
         "ALTER TABLE users ADD COLUMN snaptrade_user_secret VARCHAR(128)",
         "ALTER TABLE trades ADD COLUMN source_ref VARCHAR(80)",
-        "ALTER TABLE trades ADD COLUMN account VARCHAR(40) DEFAULT 'Default'",
-        "ALTER TABLE dividends ADD COLUMN account VARCHAR(40) DEFAULT 'Default'",
+        "ALTER TABLE trades ADD COLUMN account VARCHAR(40) DEFAULT 'All holdings'",
+        "ALTER TABLE dividends ADD COLUMN account VARCHAR(40) DEFAULT 'All holdings'",
+        "UPDATE trades SET account='All holdings' WHERE account='Default' OR account IS NULL",
+        "UPDATE dividends SET account='All holdings' WHERE account='Default' OR account IS NULL",
     ]
     for s in stmts:
         try:

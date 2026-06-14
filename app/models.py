@@ -36,7 +36,7 @@ class Trade(Base):
     fx = Column(Float, default=1.0)                    # AUD per unit of local currency
     source = Column(String(24), default="manual")     # manual | commsec | email:commsec | ...
     source_ref = Column(String(80), nullable=True)    # broker confirmation ref (for dedup)
-    account = Column(String(40), default="Default")   # portfolio / account name
+    account = Column(String(40), default="All holdings")   # portfolio / account name
     user = relationship("User", back_populates="trades")
 
 
@@ -51,7 +51,7 @@ class Dividend(Base):
     franking_credit = Column(Float, nullable=True)     # explicit, from a statement
     withholding = Column(Float, default=0.0)
     fx = Column(Float, default=1.0)
-    account = Column(String(40), default="Default")   # portfolio / account name
+    account = Column(String(40), default="All holdings")   # portfolio / account name
     user = relationship("User", back_populates="dividends")
 
 

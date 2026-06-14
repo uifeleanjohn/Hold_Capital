@@ -65,11 +65,11 @@ class TradeIn(BaseModel):
     price: float
     brokerage: float = 0.0
     fx: float = 1.0
-    account: str = "Default"
+    account: str = "All holdings"
 
 class ImportIn(BaseModel):
     files: list[str]          # raw CSV texts (broker exports / statement)
-    account: str = "Default"
+    account: str = "All holdings"
 
 class IncomeIn(BaseModel):
     other_income: float | None = None
@@ -110,16 +110,16 @@ def set_income(body: IncomeIn, user: User = Depends(auth.current_user), db: Sess
 def add_trade(t: TradeIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     db.add(Trade(user_id=user.id, date=t.date, ticker=t.ticker.upper(), action=t.action.upper(),
                  qty=t.qty, price=t.price, brokerage=t.brokerage, fx=t.fx, source="manual",
-                 account=(t.account or "Default").strip() or "Default"))
+                 account=(t.account or "All holdings").strip() or "All holdings"))
     db.commit()
     return {"ok": True}
 
 
 def _portfolio_names(user, db):
     names = {p.name for p in db.query(Portfolio).filter(Portfolio.user_id == user.id)}
-    names |= {(t.account or "Default") for t in user.trades}
-    names |= {(d.account or "Default") for d in user.dividends}
-    names.add("Default")
+    names |= {(t.account or "All holdings") for t in user.trades}
+    names |= {(d.account or "All holdings") for d in user.dividends}
+    names.add("All holdings")
     return sorted(names)
 
 class PortfolioIn(BaseModel):
@@ -142,12 +142,30 @@ def create_portfolio(body: PortfolioIn, user: User = Depends(auth.current_user),
 def accounts(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     return _portfolio_names(user, db)
 
+class MoveIn(BaseModel):
+    ticker: str
+    account: str          # current portfolio
+    to: str               # target portfolio
+
+@app.post("/portfolio/move")
+def move_position(body: MoveIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    """Move all of a holding's trades/dividends from one portfolio to another."""
+    to = (body.to or "").strip()[:40] or "All holdings"
+    tk = (body.ticker or "").upper()
+    moved = 0
+    for t in db.query(Trade).filter(Trade.user_id == user.id, Trade.ticker == tk, Trade.account == body.account).all():
+        t.account = to; moved += 1
+    for d in db.query(Dividend).filter(Dividend.user_id == user.id, Dividend.ticker == tk, Dividend.account == body.account).all():
+        d.account = to
+    db.commit()
+    return {"moved": moved, "to": to}
+
 
 @app.post("/portfolio/import")
 def import_csv(body: ImportIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     added_t = added_d = 0
     review = []
-    acct = (body.account or "Default").strip() or "Default"
+    acct = (body.account or "All holdings").strip() or "All holdings"
     for text in body.files:
         with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as f:
             f.write(text); path = f.name
@@ -173,11 +191,11 @@ def portfolio(user: User = Depends(auth.current_user)):
     return {
         "trades": [{"date": t.date.isoformat(), "ticker": t.ticker, "action": t.action,
                     "qty": t.qty, "price": t.price, "brokerage": t.brokerage or 0.0,
-                    "fx": t.fx or 1.0, "source": t.source, "account": t.account or "Default"} for t in user.trades],
+                    "fx": t.fx or 1.0, "source": t.source, "account": t.account or "All holdings"} for t in user.trades],
         "dividends": [{"date": d.date.isoformat(), "ticker": d.ticker, "cash": d.cash,
                        "franking": d.franking or 0.0, "franking_credit": d.franking_credit,
                        "withholding": d.withholding or 0.0, "fx": d.fx or 1.0,
-                       "account": d.account or "Default"} for d in user.dividends],
+                       "account": d.account or "All holdings"} for d in user.dividends],
     }
 
 
