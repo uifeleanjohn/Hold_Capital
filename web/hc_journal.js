@@ -57,11 +57,11 @@ function equitySVG(equity){
   function y(v){ return H-pad - (v-lo)*(H-2*pad)/(hi-lo); }
   var zero=y(0);
   var pts=equity.map(function(p,i){return x(i)+","+y(p.cum);}).join(" ");
-  var dots=equity.map(function(p,i){return '<circle cx="'+x(i)+'" cy="'+y(p.cum)+'" r="3" fill="#1c2230"/>';}).join("");
+  var dots=equity.map(function(p,i){return '<circle cx="'+x(i)+'" cy="'+y(p.cum)+'" r="3" fill="#5b9bf0"/>';}).join("");
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">'
-    + '<line x1="'+pad+'" y1="'+zero+'" x2="'+(W-pad)+'" y2="'+zero+'" stroke="#e2e5ea"/>'
-    + '<polyline points="'+pts+'" fill="none" stroke="#185fa5" stroke-width="2"/>'+dots
-    + '<text x="'+pad+'" y="14" font-size="11" fill="#5b6472">cumulative realised P&amp;L</text></svg>';
+    + '<line x1="'+pad+'" y1="'+zero+'" x2="'+(W-pad)+'" y2="'+zero+'" stroke="rgba(128,128,128,.35)"/>'
+    + '<polyline points="'+pts+'" fill="none" stroke="#5b9bf0" stroke-width="2"/>'+dots
+    + '<text x="'+pad+'" y="14" font-size="11" fill="#8b909a">cumulative realised P&amp;L</text></svg>';
 }
 
 function esc(s){ return (""+s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }

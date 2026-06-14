@@ -1,133 +1,195 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8">
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HoldCapital</title>
 <style>
-:root{--ink:#1c2230;--ore:#c2571f;--slate:#5b6472;--line:#e2e5ea;--panel:#f6f7f9;
---green:#0f6e56;--greenbg:#e1f5ee;--red:#a32d2d;--blue:#185fa5;--bluebg:#e6f1fb;--orebg:#faece7;}
-*{box-sizing:border-box} body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fbfbfa;line-height:1.5}
-.wrap{max-width:880px;margin:0 auto;padding:22px 22px 60px}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:14px}
-.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:20px}.brand .d{color:var(--ore)}
-.muted{color:var(--slate)}.small{font-size:13px}
-hr{border:0;border-top:1px solid var(--line);margin:18px 0}
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
-.kpi{border-radius:10px;padding:14px 16px}.kpi .l{font-size:12px;font-weight:700;letter-spacing:.02em}
-.kpi .v{font-size:24px;font-weight:700;margin-top:4px}.kpi .s{font-size:11px;color:var(--slate);margin-top:3px}
-.k-green{background:var(--greenbg)}.k-green .l{color:var(--green)}.k-ore{background:var(--orebg)}.k-ore .l{color:var(--ore)}
-.k-blue{background:var(--bluebg)}.k-blue .l{color:var(--blue)}
-h1{font-size:22px;margin:6px 0}h2{font-size:16px;margin:26px 0 10px}h3{font-size:14px;margin:0 0 10px}
-table{width:100%;border-collapse:collapse;font-size:13px}th{background:var(--ink);color:#fff;text-align:left;padding:7px 9px;font-weight:600;font-size:12px}
-td{padding:7px 9px;border-bottom:1px solid var(--line)}tr:nth-child(even) td{background:var(--panel)}
+:root[data-theme="dark"]{--bg:#0f1217;--surface:#161b24;--surface2:#1d2330;--border:#272e3b;
+--text:#e8eaf0;--text2:#9aa1ad;--text3:#6b7280;--accent:#e0712f;--accent-soft:rgba(224,113,47,.16);
+--green:#46c08a;--greenbg:rgba(70,192,138,.14);--red:#ec6a62;--redbg:rgba(236,106,98,.14);
+--blue:#5b9bf0;--bluebg:rgba(91,155,240,.14);--shadow:0 1px 3px rgba(0,0,0,.4)}
+:root[data-theme="light"]{--bg:#f7f8fa;--surface:#fff;--surface2:#f1f3f6;--border:#e3e6eb;
+--text:#1c2230;--text2:#5b6472;--text3:#8b909a;--accent:#c2571f;--accent-soft:#faece7;
+--green:#0f6e56;--greenbg:#e1f5ee;--red:#a32d2d;--redbg:#fbeaea;--blue:#185fa5;--bluebg:#e6f1fb;--shadow:0 1px 2px rgba(0,0,0,.05)}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+a{color:var(--accent)}
+/* ticker */
+.ticker{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;white-space:nowrap;height:38px;display:flex;align-items:center}
+.ticker-track{display:inline-flex;gap:30px;padding-left:20px;animation:scroll 60s linear infinite;will-change:transform}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.tk{font-size:13px;display:inline-flex;gap:7px;align-items:center}
+.tk b{font-weight:600}.tk .px{color:var(--text2)}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+/* layout */
+.layout{display:flex;min-height:calc(100vh - 38px)}
+.side{width:212px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 14px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:19px;padding:4px 8px 18px}.brand .d{color:var(--accent)}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav button{display:flex;align-items:center;gap:11px;background:none;border:0;color:var(--text2);font-size:14.5px;font-weight:500;
+padding:10px 12px;border-radius:9px;cursor:pointer;text-align:left;width:100%}
+.nav button:hover{background:var(--surface2);color:var(--text)}
+.nav button.active{background:var(--accent-soft);color:var(--accent)}
+.nav button i{font-size:18px;width:20px;text-align:center}
+.side-foot{margin-top:auto;border-top:1px solid var(--border);padding-top:12px;font-size:12.5px;color:var(--text2)}
+.side-foot .acct{padding:4px 8px;word-break:break-all}
+.side-foot .row{display:flex;gap:8px;margin-top:8px}
+.main{flex:1;min-width:0;padding:22px 26px 60px;max-width:1000px}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.head h1{font-size:21px;margin:0}
+/* generic */
+.muted{color:var(--text2)}.small{font-size:13px}
+hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:var(--shadow)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin:16px 0}
+.kpi{border-radius:12px;padding:15px 17px;border:1px solid var(--border)}
+.kpi .l{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.kpi .v{font-size:25px;font-weight:700;margin-top:5px;color:var(--text)}.kpi .s{font-size:11px;color:var(--text2);margin-top:3px}
+.k-green{background:var(--greenbg);border-color:transparent}.k-green .l{color:var(--green)}
+.k-ore{background:var(--accent-soft);border-color:transparent}.k-ore .l{color:var(--accent)}
+.k-blue{background:var(--bluebg);border-color:transparent}.k-blue .l{color:var(--blue)}
+h1{font-size:21px}h2{font-size:15px;margin:24px 0 10px;color:var(--text);letter-spacing:.01em}h3{font-size:14px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surface2);color:var(--text2);text-align:left;padding:9px 11px;font-weight:600;font-size:11.5px;letter-spacing:.03em;text-transform:uppercase}
+td{padding:9px 11px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:last-child td{border-bottom:0}tr:nth-child(even) td{background:var(--surface2)}
 .r{text-align:right}.pos{color:var(--green);font-weight:600}.neg{color:var(--red);font-weight:600}
-.bar{height:9px;background:var(--panel);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%}
-.exp{display:flex;flex-direction:column;gap:11px}.expr .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
-.btn{display:inline-block;background:var(--ink);color:#fff;border:0;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
-.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.sm{padding:7px 12px;font-size:13px}
-.drop{border:2px dashed #c7ccd4;border-radius:12px;padding:16px;text-align:center;background:#fff;margin:8px 0}
-label.fld{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
-select,input[type=number],input[type=text],input[type=date],input[type=email],input[type=password]{font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.bar{height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;border-radius:99px}
+.exp{display:flex;flex-direction:column;gap:12px}.expr .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}.btn.ghost:hover{background:var(--surface2)}
+.btn.sm{padding:7px 13px;font-size:13px}
+.drop{border:1.5px dashed var(--border);border-radius:11px;padding:15px;text-align:center;background:var(--bg);margin:8px 0}
+label.fld{display:block;font-size:12.5px;font-weight:600;margin:14px 0 6px;color:var(--text2)}
+select,input[type=number],input[type=text],input[type=date],input[type=email],input[type=password]{font-size:14px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text)}
 .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px}.chk{display:flex;align-items:center;gap:8px;font-size:13px}
-.act{border-radius:0 8px 8px 0;padding:12px 14px;margin:8px 0}.act.wait{background:var(--greenbg);border-left:3px solid var(--green)}
-.act.harvest{background:var(--bluebg);border-left:3px solid var(--blue)}.act .h{font-weight:700}.act.wait .h{color:var(--green)}.act.harvest .h{color:var(--blue)}
-.flag{font-size:12.5px;padding:8px 11px;border-radius:8px;margin:6px 0;background:var(--panel);border-left:3px solid #c7ccd4}
-.flag.info{border-left-color:var(--blue)}.flag.review{border-left-color:var(--ore)}
-.bottom{background:var(--ink);color:#fff;border-radius:10px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:18px}.bottom .v{font-size:22px;font-weight:700}
-.pill{font-size:11px;background:#eef0f3;border-radius:99px;padding:2px 9px;color:var(--slate)}
-.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:6px}
-.tab{background:none;border:0;border-bottom:2px solid transparent;padding:9px 4px;margin-right:14px;font-size:15px;font-weight:600;cursor:pointer;color:var(--slate)}.tab.active{color:var(--ink);border-bottom-color:var(--ore)}
-.jin{font-size:12px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff}
-.login{max-width:380px;margin:60px auto}.login input{width:100%;margin-top:8px}
+.act{border-radius:0 9px 9px 0;padding:13px 15px;margin:9px 0}
+.act.wait{background:var(--greenbg);border-left:3px solid var(--green)}.act.harvest{background:var(--bluebg);border-left:3px solid var(--blue)}
+.act .h{font-weight:700}.act.wait .h{color:var(--green)}.act.harvest .h{color:var(--blue)}
+.flag{font-size:12.5px;padding:9px 12px;border-radius:9px;margin:6px 0;background:var(--surface2);border-left:3px solid var(--border)}
+.flag.info{border-left-color:var(--blue)}.flag.review{border-left-color:var(--accent)}
+.bottom{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 19px;display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.bottom .v{font-size:23px;font-weight:700;color:var(--accent)}
+.pill{font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:2px 10px;color:var(--text2)}
+.jin{font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text)}
+.hdrow{display:flex;justify-content:space-between;align-items:center}.hdrow .brand{padding:0;font-size:16px}
+/* login */
+.login-wrap{display:flex;min-height:calc(100vh - 38px)}
+.login-hero{flex:1;padding:8vh 6vw;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,var(--surface),var(--bg))}
+.login-hero h1{font-size:40px;line-height:1.06;margin:0;letter-spacing:-.02em}
+.login-hero .sub{color:var(--accent);font-size:26px;font-style:italic;margin-top:6px;margin-bottom:8px}
+.login-hero p{color:var(--text2);max-width:380px;margin-top:22px}
+.hdrow .brand{display:none}
+.preview{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.pv{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;min-width:150px}
+.pv .l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}.pv .v{font-size:22px;font-weight:700;margin-top:4px}
+.login-form{width:380px;flex-shrink:0;padding:8vh 40px;display:flex;flex-direction:column;justify-content:center;background:var(--surface);border-left:1px solid var(--border)}
+.login-form h2{font-size:24px;margin:0 0 4px}.login-form input{width:100%;margin-top:10px}
+@media(max-width:820px){.login-form{display:none}.side{display:none}.main{padding:16px}}
 </style></head><body>
 
-<div id="login" style="display:none"><div class="login">
-  <div class="brand" style="justify-content:center;margin-bottom:6px"><span class="d">&#9670;</span> HoldCapital</div>
-  <p class="muted small" style="text-align:center">Your portfolio, and everything that moves it.</p>
-  <div class="card">
+<div class="ticker"><div class="ticker-track" id="ticker-track"></div></div>
+
+<!-- LOGIN -->
+<div id="login" style="display:none"><div class="login-wrap">
+  <div class="login-hero">
+    <div class="brand" style="font-size:17px;margin-bottom:20px"><span class="d">&#9670;</span> HoldCapital</div>
+    <h1>See what you own.</h1>
+    <div class="sub">and what you'll owe.</div>
+    <p>Every holding — ASX, US, crypto and bullion — with the tax, exposure and journal in one clean place. Built for Australian investors.</p>
+    <div class="preview">
+      <div class="pv"><div class="l">Net capital gain</div><div class="v pos">$3,669</div></div>
+      <div class="pv"><div class="l">Est. tax</div><div class="v">$1,295</div></div>
+      <div class="pv"><div class="l">Win rate</div><div class="v">60%</div></div>
+    </div>
+  </div>
+  <div class="login-form">
+    <h2>Welcome <span style="color:var(--accent);font-style:italic">back</span>.</h2>
+    <p class="muted small">Sign in to your portfolio.</p>
     <input id="au-email" type="email" placeholder="Email">
     <input id="au-pw" type="password" placeholder="Password">
-    <div style="margin-top:14px;display:flex;gap:8px">
-      <button class="btn" onclick="doAuth('login')">Log in</button>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="doAuth('login')">Log in</button>
       <button class="btn ghost" onclick="doAuth('signup')">Create account</button>
     </div>
     <p id="au-msg" class="small" style="color:var(--red);margin-top:10px"></p>
+    <p class="muted small" style="margin-top:auto">General information only — not financial or tax advice.</p>
   </div>
-  <p class="muted small" style="text-align:center">General information only — not financial or tax advice.</p>
 </div></div>
 
-<div id="shell" style="display:none"><div class="wrap">
-  <div class="topbar">
+<!-- APP -->
+<div id="shell" style="display:none"><div class="layout">
+  <aside class="side">
     <div class="brand"><span class="d">&#9670;</span> HoldCapital</div>
-    <div class="small muted">
-      <span id="topbar-email"></span> &middot; plan <span id="tier-badge" class="pill">free</span>
-      <button class="btn ghost sm" onclick="upgrade('plus')">Upgrade</button>
-      <button class="btn ghost sm" onclick="logout()">Log out</button>
+    <nav class="nav">
+      <button class="active" id="tab-dash" onclick="showTab('dash')"><i class="ti ti-coin"></i> Tax &amp; exposure</button>
+      <button id="tab-perf" onclick="showTab('perf')"><i class="ti ti-chart-line"></i> Performance</button>
+      <button id="tab-journal" onclick="showTab('journal')"><i class="ti ti-notebook"></i> Journal</button>
+      <button id="tab-screener" onclick="showTab('screener')"><i class="ti ti-list-search"></i> Screener</button>
+      <button onclick="togglePanel()"><i class="ti ti-plus"></i> Add / import</button>
+    </nav>
+    <div class="side-foot">
+      <div class="acct"><span id="topbar-email"></span><br><span class="muted">plan</span> <span id="tier-badge" class="pill">free</span></div>
+      <div class="row">
+        <button class="btn ghost sm" onclick="toggleTheme()" id="theme-btn">Light</button>
+        <button class="btn ghost sm" onclick="upgrade('plus')">Upgrade</button>
+        <button class="btn ghost sm" onclick="logout()">Log out</button>
+      </div>
     </div>
-  </div>
+  </aside>
 
-  <div class="card">
-    <div class="row">
-      <div><label class="fld" style="margin-top:0">Add a trade</label>
-        <div class="row">
-          <input id="m-date" type="date" style="width:150px">
-          <input id="m-ticker" type="text" placeholder="BHP / BTC / XAU" style="width:120px;text-transform:uppercase">
-          <select id="m-action"><option>BUY</option><option>SELL</option></select>
-          <input id="m-qty" type="number" placeholder="Qty" style="width:80px">
-          <input id="m-price" type="number" placeholder="Price" style="width:90px">
-          <input id="m-brk" type="number" placeholder="Brokerage" style="width:100px">
-          <button class="btn sm" onclick="addTrade()">Add</button>
-        </div>
-      </div>
-    </div>
-    <div class="row" style="margin-top:6px">
-      <div><label class="fld" style="margin-top:0">Import CSVs</label>
-        <div class="row">
-          <input id="files" type="file" multiple accept=".csv">
-          <input id="statement" type="file" accept=".csv" title="dividend statement">
-          <input id="holdings" type="file" accept=".csv" title="holdings export">
-          <button class="btn ghost sm" onclick="importFiles()">Import</button>
-        </div>
-      </div>
-    </div>
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
-      <label class="fld" style="margin-top:0">Auto-import from your broker <span class="pill">beta</span></label>
-      <p class="muted small" style="margin:0 0 6px">Forward broker trade-confirmation emails to your address and trades appear automatically:</p>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <code id="inbox-addr" style="background:var(--panel);padding:6px 10px;border-radius:8px;font-size:13px">loading…</code>
-        <button class="btn ghost sm" onclick="copyInbox()">Copy</button>
-      </div>
-      <p id="inbox-recent" class="muted small" style="margin-top:6px"></p>
-      <div style="margin-top:10px">
-        <button class="btn ghost sm" onclick="brokerConnect()">Connect your broker</button>
-        <button class="btn ghost sm" onclick="brokerSync()">Sync trades</button>
-        <span id="broker-status" class="muted small" style="margin-left:6px"></span>
-      </div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div><label class="fld" style="margin-top:0">Tax basis</label>
-        <select id="income" onchange="setIncome()">
-          <option value="flat">Flat 37%</option>
-          <option value="90000">Brackets — $90k income</option>
-          <option value="120000">Brackets — $120k income</option>
-          <option value="160000">Brackets — $160k income</option>
-          <option value="200000">Brackets — $200k income</option>
-        </select></div>
-      <div class="chk" style="margin-top:22px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection</label></div>
-    </div>
-  </div>
+  <main class="main">
+    <div class="head"><h1 id="page-title">Tax &amp; exposure</h1>
+      <button class="btn ghost sm" onclick="togglePanel()"><i class="ti ti-plus"></i> Add data</button></div>
 
-  <div class="tabs">
-    <button class="tab active" id="tab-dash" onclick="showTab('dash')">Tax &amp; exposure</button>
-    <button class="tab" id="tab-perf" onclick="showTab('perf')">Performance</button>
-    <button class="tab" id="tab-journal" onclick="showTab('journal')">Journal</button>
-    <button class="tab" id="tab-screener" onclick="showTab('screener')">Screener</button>
-  </div>
-  <div id="dash"></div>
-  <div id="perf" style="display:none"></div>
-  <div id="journal" style="display:none"></div>
-  <div id="screener" style="display:none"></div>
+    <div id="panel" class="card" style="display:none">
+      <div class="row">
+        <div><label class="fld" style="margin-top:0">Add a trade</label>
+          <div class="row">
+            <input id="m-date" type="date" style="width:150px">
+            <input id="m-ticker" type="text" placeholder="BHP / BTC / XAU" style="width:120px;text-transform:uppercase">
+            <select id="m-action"><option>BUY</option><option>SELL</option></select>
+            <input id="m-qty" type="number" placeholder="Qty" style="width:80px">
+            <input id="m-price" type="number" placeholder="Price" style="width:90px">
+            <input id="m-brk" type="number" placeholder="Brokerage" style="width:100px">
+            <button class="btn sm" onclick="addTrade()">Add</button>
+          </div></div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <div><label class="fld" style="margin-top:0">Import CSVs</label>
+          <div class="row"><input id="files" type="file" multiple accept=".csv">
+            <input id="statement" type="file" accept=".csv" title="dividend statement">
+            <input id="holdings" type="file" accept=".csv" title="holdings export">
+            <button class="btn ghost sm" onclick="importFiles()">Import</button></div></div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <label class="fld" style="margin-top:0">Auto-import from your broker <span class="pill">beta</span></label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <code id="inbox-addr" style="background:var(--surface2);padding:6px 10px;border-radius:8px;font-size:13px">loading…</code>
+          <button class="btn ghost sm" onclick="copyInbox()">Copy</button>
+          <button class="btn ghost sm" onclick="brokerConnect()">Connect broker</button>
+          <button class="btn ghost sm" onclick="brokerSync()">Sync</button>
+          <span id="broker-status" class="muted small"></span>
+        </div>
+        <p id="inbox-recent" class="muted small" style="margin-top:6px"></p>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div><label class="fld" style="margin-top:0">Tax basis</label>
+          <select id="income" onchange="setIncome()">
+            <option value="flat">Flat 37%</option><option value="90000">Brackets — $90k income</option>
+            <option value="120000">Brackets — $120k income</option><option value="160000">Brackets — $160k income</option>
+            <option value="200000">Brackets — $200k income</option></select></div>
+        <div class="chk" style="margin-top:22px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection</label></div>
+      </div>
+    </div>
+
+    <div id="dash"></div>
+    <div id="perf" style="display:none"></div>
+    <div id="journal" style="display:none"></div>
+    <div id="screener" style="display:none"></div>
+  </main>
 </div></div>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/dist/tabler-icons.min.css">
 <script src="/static/hc_engine.js"></script>
 <script src="/static/hc_journal.js"></script>
 <script src="/static/hc_features.js"></script>

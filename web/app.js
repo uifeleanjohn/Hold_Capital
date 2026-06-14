@@ -90,11 +90,40 @@ function screenFilters(){ return { market:$("scr-market").value, sector:$("scr-s
 function applyScreen(){ $("scr-body").innerHTML = HC.screenRows(screenFilters()); }
 function sortScreen(k){ if(SCREEN.sortKey===k) SCREEN.sortDir = SCREEN.sortDir==="asc"?"desc":"asc"; else { SCREEN.sortKey=k; SCREEN.sortDir="desc"; } applyScreen(); }
 
-/* ---- tabs ---- */
+/* ---- tabs (sidebar nav) ---- */
 var TABS = { dash:"dash", perf:"perf", journal:"journal", screener:"screener" };
-function showTab(which){ Object.keys(TABS).forEach(function(k){
-  $(TABS[k]).style.display = k===which ? "block":"none";
-  $("tab-"+k).className = "tab" + (k===which?" active":""); }); }
+var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Journal", screener:"Screener" };
+function showTab(which){
+  Object.keys(TABS).forEach(function(k){
+    $(TABS[k]).style.display = k===which ? "block" : "none";
+    $("tab-"+k).className = k===which ? "active" : "";
+  });
+  if($("page-title")) $("page-title").textContent = TITLES[which];
+}
+function togglePanel(){ var p=$("panel"); p.style.display = p.style.display==="none" ? "block" : "none"; }
+
+/* ---- theme ---- */
+function initTheme(){ var t=localStorage.getItem("hc_theme")||"dark"; document.documentElement.dataset.theme=t; themeBtn(t); }
+function toggleTheme(){ var t=document.documentElement.dataset.theme==="dark"?"light":"dark";
+  document.documentElement.dataset.theme=t; localStorage.setItem("hc_theme",t); themeBtn(t); }
+function themeBtn(t){ var b=$("theme-btn"); if(b) b.textContent = t==="dark" ? "Light" : "Dark"; }
+
+/* ---- ticker tape ---- */
+var TICKER=[
+  {s:"BHP",p:"$41.50",c:-0.8},{s:"CBA",p:"$130.00",c:0.5},{s:"CSL",p:"$250.00",c:-0.4},
+  {s:"FMG",p:"$21.00",c:-2.1},{s:"RIO",p:"$118.00",c:-0.6},{s:"WDS",p:"$24.00",c:0.9},
+  {s:"WES",p:"$75.00",c:1.1},{s:"NST",p:"$16.50",c:1.4},
+  {s:"NVDA",p:"US$175.00",c:2.4},{s:"AAPL",p:"US$230.00",c:0.6},{s:"MSFT",p:"US$480.00",c:0.9},
+  {s:"TSLA",p:"US$340.00",c:-1.8},{s:"META",p:"US$700.00",c:1.5},{s:"GOOGL",p:"US$200.00",c:0.8},
+  {s:"BTC",p:"$165,000",c:3.1},{s:"ETH",p:"$5,500",c:2.2},{s:"SOL",p:"$320",c:4.5},{s:"XRP",p:"$3.20",c:-1.2},
+  {s:"Gold",p:"$4,200/oz",c:0.4},{s:"Silver",p:"$52/oz",c:0.9}
+];
+function buildTicker(){
+  var html=TICKER.map(function(t){ var cls=t.c>=0?"pos":"neg";
+    return '<span class="tk"><b>'+t.s+'</b> <span class="px">'+t.p+'</span> <span class="'+cls+'">'+(t.c>=0?"+":"")+t.c.toFixed(1)+'%</span></span>';
+  }).join("");
+  if($("ticker-track")) $("ticker-track").innerHTML = html + html;   // duplicate for seamless loop
+}
 
 /* ---- portfolio mutations ---- */
 async function addTrade(){
@@ -144,5 +173,6 @@ function show(which){ $("login").style.display = which==="login"?"block":"none";
   $("shell").style.display = which==="app"?"block":"none"; }
 
 window.addEventListener("DOMContentLoaded", function(){
+  initTheme(); buildTicker();
   if(API.token()) loadApp(); else show("login");
 });
