@@ -100,7 +100,8 @@ function renderPerformance(result){
    + '<tr><th>Holding</th><th class=r>Qty held</th><th class=r>Value</th><th class=r>Unrealised</th><th class=r>%</th><th class=r>Realised</th><th class=r>Income</th><th class=r>Total</th></tr>';
   p.rows.forEach(function(r){
     var uc=r.unreal>=0?"pos":"neg", tc=r.total>=0?"pos":"neg";
-    h+='<tr><td><b>'+esc(r.name)+'</b></td><td class=r>'+(r.qty?Math.round(r.qty).toLocaleString():"—")+'</td>'
+    var av=(HC.avatar?HC.avatar(r.ticker):'');
+    h+='<tr><td><div style="display:flex;align-items:center;gap:9px">'+av+'<b>'+esc(r.name)+'</b></div></td><td class=r>'+(r.qty?Math.round(r.qty).toLocaleString():"—")+'</td>'
      + '<td class=r>'+(r.value?money(r.value):"—")+'</td>'
      + '<td class="r '+uc+'">'+(r.qty?((r.unreal>=0?"+":"")+money(r.unreal)):"—")+'</td>'
      + '<td class="r '+uc+'">'+(r.qty&&r.cost?((r.unrealPct>=0?"+":"")+(r.unrealPct*100).toFixed(1)+"%"):"—")+'</td>'
@@ -133,12 +134,12 @@ function screen(f){
 function screenRows(f){
   var rows=screen(f);
   if(!rows.length) return '<tr><td colspan=8 class=muted style="padding:14px">No matches.</td></tr>';
-  return rows.map(function(u){ var rc=u.ret1y>=0?"pos":"neg";
-    return '<tr><td><b>'+u.ticker+'</b></td><td>'+esc(u.name)+'</td><td>'+u.exchange+'</td><td>'+esc(u.tag)+'</td>'
+  return rows.map(function(u){ var av=(HC.avatar?HC.avatar(u.ticker):'');
+    return '<tr><td><div style="display:flex;align-items:center;gap:9px">'+av+'<b>'+u.ticker+'</b></div></td><td>'+esc(u.name)+'</td><td>'+u.exchange+'</td><td>'+esc(u.tag)+'</td>'
      + '<td class=r>'+(u.ccy==="USD"?"US$":"$")+u.px.toFixed(2)+'</td>'
      + '<td class=r>$'+u.mcap+'b</td><td class=r>'+(u.pe>0?u.pe.toFixed(1):"—")+'</td>'
      + '<td class=r>'+(u.dy>0?u.dy.toFixed(1)+"%":"—")+'</td>'
-     + '<td class="r '+rc+'">'+(u.ret1y>=0?"+":"")+u.ret1y+'%</td></tr>'; }).join("");
+     + '<td class=r>'+(HC.chgPill?HC.chgPill(u.ret1y):((u.ret1y>=0?"+":"")+u.ret1y+'%'))+'</td></tr>'; }).join("");
 }
 function renderScreenerShell(){
   var secOpts='<option value=all>All sectors</option>'+SECTORS.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join("");

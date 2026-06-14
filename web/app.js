@@ -134,30 +134,40 @@ function renderPositions(){
     var trades = CUR.trades.filter(function(t){ return (t.account||"Default")===name; });
     var m = HC.matchParcels(secs, trades, new HC.Account({}), method);
     var tickers = Object.keys(m.open).filter(function(tk){ return m.open[tk].some(function(l){return l.qtyOpen>1e-9;}); });
-    html += '<div class="card"><h3 style="margin:0 0 8px">'+pesc(name)+'</h3>';
-    if(!tickers.length){ html += '<p class="muted small">No open positions in this portfolio.</p></div>'; return; }
-    html += '<table><tr><th>Holding</th><th class=r>Qty</th><th class=r>Avg fill</th><th class=r>Last</th><th class=r>Value</th><th class=r>Unrealised</th><th></th></tr>';
-    tickers.forEach(function(tk){
+    var rows = tickers.map(function(tk){
       var lots = m.open[tk].filter(function(l){return l.qtyOpen>1e-9;});
       var qty = lots.reduce(function(s,l){return s+l.qtyOpen;},0);
       var cost = lots.reduce(function(s,l){return s+l.qtyOpen*l.unitCost;},0);
       var sec = secs[tk] || {px:0,fx:1,name:tk};
-      var last = (sec.px||0)*(sec.fx||1), value = qty*last, avg = cost/qty, unreal = value-cost;
+      var last=(sec.px||0)*(sec.fx||1);
+      return {tk:tk, sec:sec, lots:lots, qty:qty, cost:cost, last:last, value:qty*last, avg:cost/qty, unreal:qty*last-cost};
+    });
+    var totV=rows.reduce(function(s,r){return s+r.value;},0), totU=rows.reduce(function(s,r){return s+r.unreal;},0);
+    var sc=totU>=0?"pos":"neg";
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
+      + '<h3 style="margin:0">'+pesc(name)+'</h3>'
+      + (totV ? '<span class="muted small">'+M(totV)+' · <span class="'+sc+'">'+(totU>=0?"+":"")+M(totU)+'</span></span>' : '') + '</div>';
+    if(!rows.length){ html += '<p class="muted small">No open positions in this portfolio.</p></div>'; return; }
+    html += '<table><tr><th>Holding</th><th class=r>Qty</th><th class=r>Avg fill</th><th class=r>Last</th><th class=r>Value</th><th class=r>Unrealised</th><th></th></tr>';
+    rows.forEach(function(r){
+      var tk=r.tk, sec=r.sec, lots=r.lots;
       var i = POSLIST.length; POSLIST.push({ticker:tk, account:name});
-      var uc = unreal>=0 ? "pos" : "neg";
-      html += '<tr><td><b>'+pesc(sec.name||tk)+'</b> <span class="muted small">'+tk+'</span></td>'
-        + '<td class=r>'+pround(qty)+'</td><td class=r>'+pprice(avg)+'</td><td class=r>'+pprice(last)+'</td>'
-        + '<td class=r>'+(value?M(value):"—")+'</td><td class="r '+uc+'">'+(value?((unreal>=0?"+":"")+M(unreal)):"—")+'</td>'
+      var uc = r.unreal>=0 ? "pos" : "neg", upct = r.cost ? r.unreal/r.cost*100 : 0;
+      html += '<tr><td><div style="display:flex;align-items:center;gap:9px">'+(HC.avatar?HC.avatar(tk):'')+'<div><b>'+pesc(sec.name||tk)+'</b><div class="muted" style="font-size:11px">'+tk+'</div></div></div></td>'
+        + '<td class=r>'+pround(r.qty)+'</td><td class=r>'+pprice(r.avg)+'</td><td class=r>'+pprice(r.last)+'</td>'
+        + '<td class=r>'+(r.value?M(r.value):"—")+'</td>'
+        + '<td class="r '+uc+'">'+(r.value?((r.unreal>=0?"+":"")+M(r.unreal)+' <span style="font-weight:400;font-size:11px">('+(upct>=0?"+":"")+upct.toFixed(1)+'%)</span>'):"—")+'</td>'
         + '<td class=r><button class="btn ghost sm" onclick="togglePosForm('+i+')">Add / close</button></td></tr>';
-      html += '<tr><td colspan=7 style="border-top:0;padding-top:0">'
-        + '<div class="muted small">Parcels: '+lots.map(function(l){return pround(l.qtyOpen)+' @ '+pprice(l.unitCost)+' ('+pdate(l.acquired)+')';}).join('&nbsp; · &nbsp;')+'</div>'
-        + '<div id="pf-'+i+'" style="display:none;margin-top:8px">'
+      html += '<tr><td colspan=7 style="border-top:0;padding-top:0;padding-bottom:14px">'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:2px">Parcels</span>'
+        + lots.map(function(l){return '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:3px 9px;font-size:12px;color:var(--text2)"><b style="color:var(--text)">'+pround(l.qtyOpen)+'</b> @ '+pprice(l.unitCost)+' · '+pdate(l.acquired)+'</span>';}).join("")+'</div>'
+        + '<div id="pf-'+i+'" style="display:none;margin-top:10px">'
         + '<select id="pf-'+i+'-side"><option>BUY</option><option>SELL</option></select> '
         + '<input id="pf-'+i+'-qty" type="number" placeholder="qty" style="width:80px"> '
         + '<input id="pf-'+i+'-price" type="number" placeholder="price" style="width:90px"> '
         + '<input id="pf-'+i+'-date" type="date" style="width:150px"> '
         + '<button class="btn sm" onclick="submitPos('+i+')">Save</button>'
-        + '<span class="muted small" style="margin-left:8px">BUY = add to position, SELL = close / trim</span></div></td></tr>';
+        + '<span class="muted small" style="margin-left:8px">BUY adds · SELL closes/trims</span></div></td></tr>';
     });
     html += '</table></div>';
   });

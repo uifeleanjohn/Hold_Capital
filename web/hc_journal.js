@@ -92,12 +92,14 @@ function renderJournal(trades, ann){
   h+='</table></div>';
 
   h+='<h2>Trades — tag &amp; review</h2><div class=card style="padding:0;overflow:hidden"><table>'
-   + '<tr><th>Holding</th><th>Exit</th><th class=r>Held</th><th class=r>P&amp;L</th><th>Setup</th><th class=r>Conf.</th><th>Notes</th></tr>';
+   + '<tr><th>Holding</th><th>Result</th><th>Exit</th><th class=r>Held</th><th class=r>P&amp;L</th><th>Setup</th><th class=r>Conf.</th><th>Notes</th></tr>';
   trades.slice().sort(function(a,b){return b.exit-a.exit;}).forEach(function(t){
     var a=ann[t.key]||{}; var cls=t.pnl>=0?"pos":"neg";
     var setOpts=SETUPS.map(function(s){return '<option'+(a.setup===s?' selected':'')+'>'+esc(s)+'</option>';}).join("");
     var confOpts=[1,2,3,4,5].map(function(c){return '<option'+(a.confidence===c?' selected':'')+'>'+c+'</option>';}).join("");
-    h+='<tr><td><b>'+esc(t.name)+'</b></td><td>'+mo(t.exit)+'</td><td class=r>'+t.daysHeld+'</td>'
+    var av=(HC.avatar?HC.avatar(t.ticker):''); var sp=(HC.statusPill?HC.statusPill(t.pnl>0?'win':t.pnl<0?'loss':'flat'):'');
+    h+='<tr><td><div style="display:flex;align-items:center;gap:9px">'+av+'<div><b>'+esc(t.name)+'</b><div class="muted" style="font-size:11px">'+esc(t.ticker)+'</div></div></div></td>'
+     + '<td>'+sp+'</td><td>'+mo(t.exit)+'</td><td class=r>'+t.daysHeld+'</td>'
      + '<td class="r '+cls+'">'+(t.pnl>=0?"+":"")+money(t.pnl)+'</td>'
      + '<td><select class="jin" data-k="'+esc(t.key)+'" data-f="setup">'+'<option></option>'+setOpts+'</select></td>'
      + '<td class=r><select class="jin" data-k="'+esc(t.key)+'" data-f="confidence"><option></option>'+confOpts+'</select></td>'
