@@ -152,10 +152,9 @@ function renderPositions(){
     });
     var totV=rows.reduce(function(s,r){return s+r.value;},0), totU=rows.reduce(function(s,r){return s+r.unreal;},0);
     var sc=totU>=0?"pos":"neg";
-    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
       + '<h3 style="margin:0">'+pesc(name)+'</h3>'
-      + '<div style="display:flex;align-items:center;gap:12px">'+(totV ? '<span class="muted small">'+M(totV)+' · <span class="'+sc+'">'+(totU>=0?"+":"")+M(totU)+'</span></span>' : '')
-      + '<button class="btn ghost sm" onclick="openQuickAddIdx('+PORTFOLIOS.indexOf(name)+')">+ Add</button></div></div>';
+      + (totV ? '<span class="muted small">'+M(totV)+' · <span class="'+sc+'">'+(totU>=0?"+":"")+M(totU)+'</span></span>' : '') + '</div>';
     if(!rows.length){ html += '<p class="muted small">No open positions in this portfolio.</p></div>'; return; }
     html += '<table><tr><th>Holding</th><th class=r>Qty</th><th class=r>Avg fill</th><th class=r>Last</th><th class=r>Value</th><th class=r>Unrealised</th><th></th></tr>';
     rows.forEach(function(r){
@@ -202,24 +201,18 @@ async function movePos(i){ var p=POSLIST[i]; if(!p) return; var to=$("pf-"+i+"-m
 /* ---- journal quick-add + all-trades + delete ---- */
 function renderQuickAdd(){
   var opts=(PORTFOLIOS.length?PORTFOLIOS:["All holdings"]).map(function(p){return '<option>'+p+'</option>';}).join("");
-  return '<div style="text-align:right;margin-top:2px"><button class="btn sm" onclick="toggleQuickAdd()">+ Add trade</button></div>'
-   + '<div id="jadd" class="card" style="display:none"><div class="row">'
+  var today=new Date().toISOString().slice(0,10);
+  return '<div class="card"><h3 style="margin:0 0 10px">Add a trade</h3><div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">'
    + '<div><label class="fld" style="margin-top:0">Portfolio</label><select id="jq-acct">'+opts+'</select></div>'
-   + '<div><label class="fld" style="margin-top:0">Date</label><input id="jq-date" type="date" style="width:148px"></div>'
+   + '<div><label class="fld" style="margin-top:0">Date</label><input id="jq-date" type="date" value="'+today+'" style="width:148px"></div>'
    + '<div><label class="fld" style="margin-top:0">Ticker</label><input id="jq-ticker" type="text" placeholder="BHP / BTC / XAU" style="width:120px;text-transform:uppercase"></div>'
    + '<div><label class="fld" style="margin-top:0">Side</label><select id="jq-action"><option>BUY</option><option>SELL</option></select></div>'
    + '<div><label class="fld" style="margin-top:0">Qty</label><input id="jq-qty" type="number" placeholder="0" style="width:80px"></div>'
    + '<div><label class="fld" style="margin-top:0">Price</label><input id="jq-price" type="number" placeholder="0.00" style="width:90px"></div>'
    + '<div><label class="fld" style="margin-top:0">Brokerage</label><input id="jq-brk" type="number" placeholder="0.00" style="width:90px"></div>'
-   + '<div><label class="fld" style="margin-top:0">&nbsp;</label><button class="btn sm" onclick="jAddTrade()">Add trade</button></div>'
+   + '<div><button class="btn" onclick="jAddTrade()">Add trade</button></div>'
    + '</div></div>';
 }
-function toggleQuickAdd(){ var f=$("jadd"); if(!f) return; f.style.display=f.style.display==="none"?"block":"none";
-  if(f.style.display==="block" && !$("jq-date").value) $("jq-date").value=new Date().toISOString().slice(0,10); }
-function openQuickAddIdx(i){ var f=$("jadd"); if(!f) return; f.style.display="block";
-  if($("jq-acct")&&PORTFOLIOS[i]) $("jq-acct").value=PORTFOLIOS[i];
-  if(!$("jq-date").value) $("jq-date").value=new Date().toISOString().slice(0,10);
-  f.scrollIntoView({behavior:"smooth",block:"nearest"}); }
 async function jAddTrade(){
   var d=$("jq-date").value, tk=($("jq-ticker").value||"").trim().toUpperCase();
   var qty=parseFloat($("jq-qty").value), px=parseFloat($("jq-price").value);
