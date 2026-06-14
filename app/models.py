@@ -66,6 +66,14 @@ class JournalNote(Base):
     __table_args__ = (UniqueConstraint("user_id", "trade_key", name="uq_user_tradekey"),)
 
 
+class Portfolio(Base):
+    __tablename__ = "portfolios"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    name = Column(String(40), nullable=False)
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_portfolio"),)
+
+
 class PriceCache(Base):
     __tablename__ = "price_cache"
     ticker = Column(String(12), primary_key=True)

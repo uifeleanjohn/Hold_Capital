@@ -122,7 +122,12 @@ accts = c.get("/accounts", headers=H).json()
 ptf4 = c.get("/portfolio", headers=H).json()
 us_trades = [t for t in ptf4["trades"] if t.get("account") == "US"]
 print(f"  accounts: {accts} | AAPL tagged to 'US': {len(us_trades) == 1}")
-acct_ok = "US" in accts and "Default" in accts and len(us_trades) == 1
+# create an empty portfolio (before any trades exist in it)
+created = c.post("/portfolios", headers=H, json={"name": "Super"}).json()
+plist = c.get("/portfolios", headers=H).json()
+print(f"  created empty portfolio 'Super' -> portfolios now: {plist}")
+acct_ok = ("US" in accts and "Default" in accts and len(us_trades) == 1
+           and "Super" in plist and "Super" in created["portfolios"])
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
       and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok and acct_ok)

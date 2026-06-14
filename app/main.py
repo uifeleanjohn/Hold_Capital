@@ -13,7 +13,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from .db import get_db, init_db
-from .models import User, Trade, Dividend, PriceCache, JournalNote
+from .models import User, Trade, Dividend, PriceCache, JournalNote, Portfolio
 from . import auth, bridge, marketdata, billing, config, email_parser, broker
 from .core import importer
 
@@ -115,10 +115,32 @@ def add_trade(t: TradeIn, user: User = Depends(auth.current_user), db: Session =
     return {"ok": True}
 
 
+def _portfolio_names(user, db):
+    names = {p.name for p in db.query(Portfolio).filter(Portfolio.user_id == user.id)}
+    names |= {(t.account or "Default") for t in user.trades}
+    names |= {(d.account or "Default") for d in user.dividends}
+    names.add("Default")
+    return sorted(names)
+
+class PortfolioIn(BaseModel):
+    name: str
+
+@app.get("/portfolios")
+def list_portfolios(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    return _portfolio_names(user, db)
+
+@app.post("/portfolios")
+def create_portfolio(body: PortfolioIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    name = (body.name or "").strip()[:40]
+    if not name:
+        raise HTTPException(400, "Portfolio name required")
+    if not db.query(Portfolio).filter_by(user_id=user.id, name=name).first():
+        db.add(Portfolio(user_id=user.id, name=name)); db.commit()
+    return {"portfolios": _portfolio_names(user, db)}
+
 @app.get("/accounts")
 def accounts(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
-    names = {(t.account or "Default") for t in user.trades} | {(d.account or "Default") for d in user.dividends}
-    return sorted(names) or ["Default"]
+    return _portfolio_names(user, db)
 
 
 @app.post("/portfolio/import")

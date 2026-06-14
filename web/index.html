@@ -146,10 +146,20 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
 
     <div id="panel" style="display:none">
       <div class="card">
+        <h3 style="margin:0 0 4px">Portfolios</h3>
+        <p class="muted small" style="margin:0 0 10px">Create a portfolio (e.g. ASX, US, Super), then assign trades to it. Use the selector at the top to view one at a time or all together.</p>
+        <div id="portfolio-list" style="margin-bottom:10px"></div>
+        <div class="row">
+          <input id="new-portfolio" type="text" placeholder="New portfolio name" style="width:200px">
+          <button class="btn sm" onclick="createPortfolio()">Create portfolio</button>
+        </div>
+      </div>
+
+      <div class="card">
         <h3 style="margin:0 0 4px">Add a trade</h3>
         <p class="muted small" style="margin:0 0 12px">Shares, crypto or metals (e.g. BHP, BTC, XAU). <b>Brokerage</b> is the fee your broker charged — optional, but it adjusts your cost base for tax.</p>
         <div class="row">
-          <div><label class="fld" style="margin-top:0">Account</label><input id="m-account" type="text" placeholder="Default" style="width:120px"></div>
+          <div><label class="fld" style="margin-top:0">Portfolio</label><select id="m-account" style="width:130px"></select></div>
           <div><label class="fld" style="margin-top:0">Date</label><input id="m-date" type="date" style="width:148px"></div>
           <div><label class="fld" style="margin-top:0">Ticker</label><input id="m-ticker" type="text" placeholder="BHP" style="width:110px;text-transform:uppercase"></div>
           <div><label class="fld" style="margin-top:0">Side</label><select id="m-action"><option>BUY</option><option>SELL</option></select></div>
@@ -164,7 +174,7 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
         <h3 style="margin:0 0 4px">Import CSV files</h3>
         <p class="muted small" style="margin:0 0 12px">Broker transaction export, an annual dividend statement (for exact franking), and/or a holdings export.</p>
         <div class="row">
-          <div><label class="fld" style="margin-top:0">Account</label><input id="imp-account" type="text" placeholder="Default" style="width:120px"></div>
+          <div><label class="fld" style="margin-top:0">Portfolio</label><select id="imp-account" style="width:130px"></select></div>
           <div><label class="fld" style="margin-top:0">Broker exports</label><input id="files" type="file" multiple accept=".csv"></div>
           <div><label class="fld" style="margin-top:0">Dividend statement</label><input id="statement" type="file" accept=".csv"></div>
           <div><label class="fld" style="margin-top:0">Holdings export</label><input id="holdings" type="file" accept=".csv"></div>

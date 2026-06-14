@@ -33,7 +33,7 @@ async function loadApp(){
   CUR.divs = pf.dividends.map(function(d){ var o = { date: new Date(d.date + "T00:00:00Z"), ticker: d.ticker,
     cash: d.cash, franking: d.franking || 0, withholding: d.withholding || 0, fx: d.fx || 1, account: d.account || "Default" };
     if(d.franking_credit != null) o.franking_credit = d.franking_credit; return o; });
-  try{ fillAccounts(await API.accounts()); }catch(e){}
+  try{ fillPortfolios(await API.portfolios()); }catch(e){}
   try{ var notes = await API.journal(); CUR.ann = {};
     notes.forEach(function(n){ CUR.ann[n.trade_key] = {setup:n.setup, confidence:n.confidence, notes:n.notes}; });
   }catch(e){ CUR.ann = {}; }
@@ -68,10 +68,24 @@ function onAccountFilter(){
   if(a !== "__all__"){ if($("m-account")) $("m-account").value = a; if($("imp-account")) $("imp-account").value = a; }
   render();
 }
-function fillAccounts(list){
-  var sel = $("acct-filter"); if(!sel) return; var cur = sel.value;
-  sel.innerHTML = '<option value="__all__">All accounts</option>' + list.map(function(a){ return '<option>'+a+'</option>'; }).join("");
-  if(cur === "__all__" || list.indexOf(cur) >= 0) sel.value = cur;
+function pfOpt(a){ return '<option>'+a+'</option>'; }
+function fillPortfolios(list){
+  if(!list || !list.length) list = ["Default"];
+  var f=$("acct-filter");
+  if(f){ var cf=f.value; f.innerHTML='<option value="__all__">All accounts</option>'+list.map(pfOpt).join("");
+    f.value = (cf==="__all__"||list.indexOf(cf)>=0)?cf:"__all__"; }
+  ["m-account","imp-account"].forEach(function(id){ var s=$(id); if(!s) return; var cv=s.value;
+    s.innerHTML=list.map(pfOpt).join("");
+    s.value = list.indexOf(cv)>=0 ? cv : (list.indexOf("Default")>=0?"Default":list[0]); });
+  var L=$("portfolio-list");
+  if(L) L.innerHTML=list.map(function(a){ return '<span class="pill" style="margin:0 5px 5px 0;display:inline-block">'+a+'</span>'; }).join("");
+}
+async function createPortfolio(){
+  var n=($("new-portfolio").value||"").trim(); if(!n) return;
+  try{ var res=await API.createPortfolio(n); $("new-portfolio").value="";
+    fillPortfolios(res.portfolios || await API.portfolios());
+    if($("m-account")) $("m-account").value=n;
+  }catch(e){ alert("Could not create portfolio: "+String(e).slice(0,100)); }
 }
 function render(){
   if(!CUR.trades.length){ $("dash").innerHTML = '<div class=card style="text-align:center;padding:30px">'
@@ -146,7 +160,7 @@ async function addTrade(){
   var qty=parseFloat($("m-qty").value), px=parseFloat($("m-price").value);
   if(!d||!tk||!(qty>0)||!(px>=0)){ alert("Enter date, ticker, quantity and price."); return; }
   var fx=(HC.SECURITIES[tk]&&HC.SECURITIES[tk].fx)||1.0;
-  var acct=($("m-account").value||"").trim()||(selectedAccount()!=="__all__"?selectedAccount():"Default");
+  var acct=($("m-account")&&$("m-account").value)||"Default";
   await API.addTrade({date:d,ticker:tk,action:$("m-action").value,qty:qty,price:px,brokerage:parseFloat($("m-brk").value)||0,fx:fx,account:acct});
   $("m-ticker").value=$("m-qty").value=$("m-price").value=$("m-brk").value="";
   await loadApp();
@@ -155,7 +169,7 @@ function importFiles(){
   var fs=[].slice.call($("files").files); if($("statement").files.length) fs.push($("statement").files[0]);
   if($("holdings").files.length) fs.push($("holdings").files[0]);
   if(!fs.length){ alert("Choose a CSV first."); return; }
-  var acct=($("imp-account").value||"").trim()||(selectedAccount()!=="__all__"?selectedAccount():"Default");
+  var acct=($("imp-account")&&$("imp-account").value)||"Default";
   var texts=[], done=0;
   fs.forEach(function(f){ var rd=new FileReader();
     rd.onload=async function(){ texts.push(rd.result); if(++done===fs.length){ await API.importFiles(texts, acct); await loadApp(); } };
