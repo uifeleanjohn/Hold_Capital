@@ -1,0 +1,122 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HoldCapital</title>
+<style>
+:root{--ink:#1c2230;--ore:#c2571f;--slate:#5b6472;--line:#e2e5ea;--panel:#f6f7f9;
+--green:#0f6e56;--greenbg:#e1f5ee;--red:#a32d2d;--blue:#185fa5;--bluebg:#e6f1fb;--orebg:#faece7;}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fbfbfa;line-height:1.5}
+.wrap{max-width:880px;margin:0 auto;padding:22px 22px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:20px}.brand .d{color:var(--ore)}
+.muted{color:var(--slate)}.small{font-size:13px}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.kpi{border-radius:10px;padding:14px 16px}.kpi .l{font-size:12px;font-weight:700;letter-spacing:.02em}
+.kpi .v{font-size:24px;font-weight:700;margin-top:4px}.kpi .s{font-size:11px;color:var(--slate);margin-top:3px}
+.k-green{background:var(--greenbg)}.k-green .l{color:var(--green)}.k-ore{background:var(--orebg)}.k-ore .l{color:var(--ore)}
+.k-blue{background:var(--bluebg)}.k-blue .l{color:var(--blue)}
+h1{font-size:22px;margin:6px 0}h2{font-size:16px;margin:26px 0 10px}h3{font-size:14px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{background:var(--ink);color:#fff;text-align:left;padding:7px 9px;font-weight:600;font-size:12px}
+td{padding:7px 9px;border-bottom:1px solid var(--line)}tr:nth-child(even) td{background:var(--panel)}
+.r{text-align:right}.pos{color:var(--green);font-weight:600}.neg{color:var(--red);font-weight:600}
+.bar{height:9px;background:var(--panel);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%}
+.exp{display:flex;flex-direction:column;gap:11px}.expr .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.btn{display:inline-block;background:var(--ink);color:#fff;border:0;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.sm{padding:7px 12px;font-size:13px}
+.drop{border:2px dashed #c7ccd4;border-radius:12px;padding:16px;text-align:center;background:#fff;margin:8px 0}
+label.fld{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+select,input[type=number],input[type=text],input[type=date],input[type=email],input[type=password]{font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px}.chk{display:flex;align-items:center;gap:8px;font-size:13px}
+.act{border-radius:0 8px 8px 0;padding:12px 14px;margin:8px 0}.act.wait{background:var(--greenbg);border-left:3px solid var(--green)}
+.act.harvest{background:var(--bluebg);border-left:3px solid var(--blue)}.act .h{font-weight:700}.act.wait .h{color:var(--green)}.act.harvest .h{color:var(--blue)}
+.flag{font-size:12.5px;padding:8px 11px;border-radius:8px;margin:6px 0;background:var(--panel);border-left:3px solid #c7ccd4}
+.flag.info{border-left-color:var(--blue)}.flag.review{border-left-color:var(--ore)}
+.bottom{background:var(--ink);color:#fff;border-radius:10px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:18px}.bottom .v{font-size:22px;font-weight:700}
+.pill{font-size:11px;background:#eef0f3;border-radius:99px;padding:2px 9px;color:var(--slate)}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:9px 4px;margin-right:14px;font-size:15px;font-weight:600;cursor:pointer;color:var(--slate)}.tab.active{color:var(--ink);border-bottom-color:var(--ore)}
+.jin{font-size:12px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.login{max-width:380px;margin:60px auto}.login input{width:100%;margin-top:8px}
+</style></head><body>
+
+<div id="login" style="display:none"><div class="login">
+  <div class="brand" style="justify-content:center;margin-bottom:6px"><span class="d">&#9670;</span> HoldCapital</div>
+  <p class="muted small" style="text-align:center">Your portfolio, and everything that moves it.</p>
+  <div class="card">
+    <input id="au-email" type="email" placeholder="Email">
+    <input id="au-pw" type="password" placeholder="Password">
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn" onclick="doAuth('login')">Log in</button>
+      <button class="btn ghost" onclick="doAuth('signup')">Create account</button>
+    </div>
+    <p id="au-msg" class="small" style="color:var(--red);margin-top:10px"></p>
+  </div>
+  <p class="muted small" style="text-align:center">General information only — not financial or tax advice.</p>
+</div></div>
+
+<div id="shell" style="display:none"><div class="wrap">
+  <div class="topbar">
+    <div class="brand"><span class="d">&#9670;</span> HoldCapital</div>
+    <div class="small muted">
+      <span id="topbar-email"></span> &middot; plan <span id="tier-badge" class="pill">free</span>
+      <button class="btn ghost sm" onclick="upgrade('plus')">Upgrade</button>
+      <button class="btn ghost sm" onclick="logout()">Log out</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div><label class="fld" style="margin-top:0">Add a trade</label>
+        <div class="row">
+          <input id="m-date" type="date" style="width:150px">
+          <input id="m-ticker" type="text" placeholder="BHP / BTC / XAU" style="width:120px;text-transform:uppercase">
+          <select id="m-action"><option>BUY</option><option>SELL</option></select>
+          <input id="m-qty" type="number" placeholder="Qty" style="width:80px">
+          <input id="m-price" type="number" placeholder="Price" style="width:90px">
+          <input id="m-brk" type="number" placeholder="Brokerage" style="width:100px">
+          <button class="btn sm" onclick="addTrade()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <div><label class="fld" style="margin-top:0">Import CSVs</label>
+        <div class="row">
+          <input id="files" type="file" multiple accept=".csv">
+          <input id="statement" type="file" accept=".csv" title="dividend statement">
+          <input id="holdings" type="file" accept=".csv" title="holdings export">
+          <button class="btn ghost sm" onclick="importFiles()">Import</button>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label class="fld" style="margin-top:0">Tax basis</label>
+        <select id="income" onchange="setIncome()">
+          <option value="flat">Flat 37%</option>
+          <option value="90000">Brackets — $90k income</option>
+          <option value="120000">Brackets — $120k income</option>
+          <option value="160000">Brackets — $160k income</option>
+          <option value="200000">Brackets — $200k income</option>
+        </select></div>
+      <div class="chk" style="margin-top:22px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection</label></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-dash" onclick="showTab('dash')">Tax &amp; exposure</button>
+    <button class="tab" id="tab-perf" onclick="showTab('perf')">Performance</button>
+    <button class="tab" id="tab-journal" onclick="showTab('journal')">Journal</button>
+    <button class="tab" id="tab-screener" onclick="showTab('screener')">Screener</button>
+  </div>
+  <div id="dash"></div>
+  <div id="perf" style="display:none"></div>
+  <div id="journal" style="display:none"></div>
+  <div id="screener" style="display:none"></div>
+</div></div>
+
+<script src="/static/hc_engine.js"></script>
+<script src="/static/hc_journal.js"></script>
+<script src="/static/hc_features.js"></script>
+<script src="/static/api.js"></script>
+<script src="/static/app.js"></script>
+</body></html>
