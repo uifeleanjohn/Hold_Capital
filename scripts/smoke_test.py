@@ -114,8 +114,17 @@ print(f"  status: connected={st['connected']}")
 ptf3 = c.get("/portfolio", headers=H).json()
 snaptrade_trades = [t for t in ptf3["trades"] if t["source"] == "snaptrade"]
 broker_ok = s1["added"] == 2 and s2["added"] == 0 and s2["skipped"] == 2 and st["connected"] and len(snaptrade_trades) == 2
+
+# ---- multi-account / portfolios ----
+print("\nMULTI-ACCOUNT:")
+c.post("/portfolio/trade", headers=H, json={"date": "2025-12-01", "ticker": "AAPL", "action": "BUY", "qty": 10, "price": 230, "fx": 1.52, "account": "US"})
+accts = c.get("/accounts", headers=H).json()
+ptf4 = c.get("/portfolio", headers=H).json()
+us_trades = [t for t in ptf4["trades"] if t.get("account") == "US"]
+print(f"  accounts: {accts} | AAPL tagged to 'US': {len(us_trades) == 1}")
+acct_ok = "US" in accts and "Default" in accts and len(us_trades) == 1
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
-      and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok)
-print("\nVERIFY (engine + crypto + billing + UI + hardening + email + broker connect):", "PASS" if ok else "FAIL")
+      and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok and acct_ok)
+print("\nVERIFY (engine + crypto + billing + UI + hardening + email + broker + accounts):", "PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)

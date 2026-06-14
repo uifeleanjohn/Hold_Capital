@@ -65,9 +65,11 @@ class TradeIn(BaseModel):
     price: float
     brokerage: float = 0.0
     fx: float = 1.0
+    account: str = "Default"
 
 class ImportIn(BaseModel):
     files: list[str]          # raw CSV texts (broker exports / statement)
+    account: str = "Default"
 
 class IncomeIn(BaseModel):
     other_income: float | None = None
@@ -107,15 +109,23 @@ def set_income(body: IncomeIn, user: User = Depends(auth.current_user), db: Sess
 @app.post("/portfolio/trade")
 def add_trade(t: TradeIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     db.add(Trade(user_id=user.id, date=t.date, ticker=t.ticker.upper(), action=t.action.upper(),
-                 qty=t.qty, price=t.price, brokerage=t.brokerage, fx=t.fx, source="manual"))
+                 qty=t.qty, price=t.price, brokerage=t.brokerage, fx=t.fx, source="manual",
+                 account=(t.account or "Default").strip() or "Default"))
     db.commit()
     return {"ok": True}
+
+
+@app.get("/accounts")
+def accounts(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    names = {(t.account or "Default") for t in user.trades} | {(d.account or "Default") for d in user.dividends}
+    return sorted(names) or ["Default"]
 
 
 @app.post("/portfolio/import")
 def import_csv(body: ImportIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     added_t = added_d = 0
     review = []
+    acct = (body.account or "Default").strip() or "Default"
     for text in body.files:
         with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as f:
             f.write(text); path = f.name
@@ -126,11 +136,11 @@ def import_csv(body: ImportIn, user: User = Depends(auth.current_user), db: Sess
         for tr in res.trades:
             db.add(Trade(user_id=user.id, date=tr["date"], ticker=tr["ticker"], action=tr["action"],
                          qty=tr["qty"], price=tr["price"], brokerage=tr.get("brokerage", 0.0),
-                         fx=tr.get("fx", 1.0), source=res.broker)); added_t += 1
+                         fx=tr.get("fx", 1.0), source=res.broker, account=acct)); added_t += 1
         for dv in res.dividends:
             db.add(Dividend(user_id=user.id, date=dv["date"], ticker=dv["ticker"], cash=dv["cash"],
                             franking=dv.get("franking", 0.0), franking_credit=dv.get("franking_credit"),
-                            withholding=dv.get("withholding", 0.0), fx=dv.get("fx", 1.0))); added_d += 1
+                            withholding=dv.get("withholding", 0.0), fx=dv.get("fx", 1.0), account=acct)); added_d += 1
         review += [{"broker": res.broker, **r} for r in res.review]
     db.commit()
     return {"trades_added": added_t, "dividends_added": added_d, "review": review}
@@ -141,10 +151,11 @@ def portfolio(user: User = Depends(auth.current_user)):
     return {
         "trades": [{"date": t.date.isoformat(), "ticker": t.ticker, "action": t.action,
                     "qty": t.qty, "price": t.price, "brokerage": t.brokerage or 0.0,
-                    "fx": t.fx or 1.0, "source": t.source} for t in user.trades],
+                    "fx": t.fx or 1.0, "source": t.source, "account": t.account or "Default"} for t in user.trades],
         "dividends": [{"date": d.date.isoformat(), "ticker": d.ticker, "cash": d.cash,
                        "franking": d.franking or 0.0, "franking_credit": d.franking_credit,
-                       "withholding": d.withholding or 0.0, "fx": d.fx or 1.0} for d in user.dividends],
+                       "withholding": d.withholding or 0.0, "fx": d.fx or 1.0,
+                       "account": d.account or "Default"} for d in user.dividends],
     }
 
 

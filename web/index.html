@@ -125,7 +125,7 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
       <button id="tab-perf" onclick="showTab('perf')"><i class="ti ti-chart-line"></i> Performance</button>
       <button id="tab-journal" onclick="showTab('journal')"><i class="ti ti-notebook"></i> Journal</button>
       <button id="tab-screener" onclick="showTab('screener')"><i class="ti ti-list-search"></i> Screener</button>
-      <button onclick="togglePanel()"><i class="ti ti-plus"></i> Add / import</button>
+      <button id="tab-add" onclick="showTab('add')"><i class="ti ti-plus"></i> Add / import</button>
     </nav>
     <div class="side-foot">
       <div class="acct"><span id="topbar-email"></span><br><span class="muted">plan</span> <span id="tier-badge" class="pill">free</span></div>
@@ -139,46 +139,64 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
 
   <main class="main">
     <div class="head"><h1 id="page-title">Tax &amp; exposure</h1>
-      <button class="btn ghost sm" onclick="togglePanel()"><i class="ti ti-plus"></i> Add data</button></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="muted small">Portfolio</span>
+        <select id="acct-filter" onchange="onAccountFilter()"><option value="__all__">All accounts</option></select>
+      </div></div>
 
-    <div id="panel" class="card" style="display:none">
-      <div class="row">
-        <div><label class="fld" style="margin-top:0">Add a trade</label>
-          <div class="row">
-            <input id="m-date" type="date" style="width:150px">
-            <input id="m-ticker" type="text" placeholder="BHP / BTC / XAU" style="width:120px;text-transform:uppercase">
-            <select id="m-action"><option>BUY</option><option>SELL</option></select>
-            <input id="m-qty" type="number" placeholder="Qty" style="width:80px">
-            <input id="m-price" type="number" placeholder="Price" style="width:90px">
-            <input id="m-brk" type="number" placeholder="Brokerage" style="width:100px">
-            <button class="btn sm" onclick="addTrade()">Add</button>
-          </div></div>
+    <div id="panel" style="display:none">
+      <div class="card">
+        <h3 style="margin:0 0 4px">Add a trade</h3>
+        <p class="muted small" style="margin:0 0 12px">Shares, crypto or metals (e.g. BHP, BTC, XAU). <b>Brokerage</b> is the fee your broker charged — optional, but it adjusts your cost base for tax.</p>
+        <div class="row">
+          <div><label class="fld" style="margin-top:0">Account</label><input id="m-account" type="text" placeholder="Default" style="width:120px"></div>
+          <div><label class="fld" style="margin-top:0">Date</label><input id="m-date" type="date" style="width:148px"></div>
+          <div><label class="fld" style="margin-top:0">Ticker</label><input id="m-ticker" type="text" placeholder="BHP" style="width:110px;text-transform:uppercase"></div>
+          <div><label class="fld" style="margin-top:0">Side</label><select id="m-action"><option>BUY</option><option>SELL</option></select></div>
+          <div><label class="fld" style="margin-top:0">Qty</label><input id="m-qty" type="number" placeholder="0" style="width:80px"></div>
+          <div><label class="fld" style="margin-top:0">Price</label><input id="m-price" type="number" placeholder="0.00" style="width:90px"></div>
+          <div><label class="fld" style="margin-top:0">Brokerage</label><input id="m-brk" type="number" placeholder="0.00" style="width:90px"></div>
+          <div><label class="fld" style="margin-top:0">&nbsp;</label><button class="btn sm" onclick="addTrade()">Add trade</button></div>
+        </div>
       </div>
-      <div class="row" style="margin-top:6px">
-        <div><label class="fld" style="margin-top:0">Import CSVs</label>
-          <div class="row"><input id="files" type="file" multiple accept=".csv">
-            <input id="statement" type="file" accept=".csv" title="dividend statement">
-            <input id="holdings" type="file" accept=".csv" title="holdings export">
-            <button class="btn ghost sm" onclick="importFiles()">Import</button></div></div>
+
+      <div class="card">
+        <h3 style="margin:0 0 4px">Import CSV files</h3>
+        <p class="muted small" style="margin:0 0 12px">Broker transaction export, an annual dividend statement (for exact franking), and/or a holdings export.</p>
+        <div class="row">
+          <div><label class="fld" style="margin-top:0">Account</label><input id="imp-account" type="text" placeholder="Default" style="width:120px"></div>
+          <div><label class="fld" style="margin-top:0">Broker exports</label><input id="files" type="file" multiple accept=".csv"></div>
+          <div><label class="fld" style="margin-top:0">Dividend statement</label><input id="statement" type="file" accept=".csv"></div>
+          <div><label class="fld" style="margin-top:0">Holdings export</label><input id="holdings" type="file" accept=".csv"></div>
+          <div><label class="fld" style="margin-top:0">&nbsp;</label><button class="btn sm" onclick="importFiles()">Import</button></div>
+        </div>
       </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-        <label class="fld" style="margin-top:0">Auto-import from your broker <span class="pill">beta</span></label>
+
+      <div class="card">
+        <h3 style="margin:0 0 4px">Auto-import from your broker <span class="pill">beta</span></h3>
+        <p class="muted small" style="margin:0 0 12px">Forward broker confirmation emails to your address, or connect read-only via SnapTrade.</p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <code id="inbox-addr" style="background:var(--surface2);padding:6px 10px;border-radius:8px;font-size:13px">loading…</code>
-          <button class="btn ghost sm" onclick="copyInbox()">Copy</button>
+          <code id="inbox-addr" style="background:var(--surface2);padding:7px 11px;border-radius:8px;font-size:13px">loading…</code>
+          <button class="btn ghost sm" onclick="copyInbox()">Copy address</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
           <button class="btn ghost sm" onclick="brokerConnect()">Connect broker</button>
-          <button class="btn ghost sm" onclick="brokerSync()">Sync</button>
+          <button class="btn ghost sm" onclick="brokerSync()">Sync now</button>
           <span id="broker-status" class="muted small"></span>
         </div>
-        <p id="inbox-recent" class="muted small" style="margin-top:6px"></p>
+        <p id="inbox-recent" class="muted small" style="margin-top:8px"></p>
       </div>
-      <div class="row" style="margin-top:10px">
-        <div><label class="fld" style="margin-top:0">Tax basis</label>
-          <select id="income" onchange="setIncome()">
-            <option value="flat">Flat 37%</option><option value="90000">Brackets — $90k income</option>
-            <option value="120000">Brackets — $120k income</option><option value="160000">Brackets — $160k income</option>
-            <option value="200000">Brackets — $200k income</option></select></div>
-        <div class="chk" style="margin-top:22px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection</label></div>
+
+      <div class="card">
+        <h3 style="margin:0 0 10px">Calculation settings</h3>
+        <div class="row">
+          <div><label class="fld" style="margin-top:0">Tax basis</label>
+            <select id="income" onchange="setIncome()">
+              <option value="flat">Flat 37%</option><option value="90000">Brackets — $90k income</option>
+              <option value="120000">Brackets — $120k income</option><option value="160000">Brackets — $160k income</option>
+              <option value="200000">Brackets — $200k income</option></select></div>
+          <div class="chk" style="margin-top:22px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection (specific ID)</label></div>
+        </div>
       </div>
     </div>
 

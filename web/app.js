@@ -29,10 +29,11 @@ async function loadApp(){
     s.px = p.price; s.fx = p.fx; HC.SECURITIES[p.ticker] = s;
   });
   CUR.trades = pf.trades.map(function(t){ return { date: new Date(t.date + "T00:00:00Z"), ticker: t.ticker,
-    action: t.action, qty: t.qty, price: t.price, brokerage: t.brokerage || 0, fx: t.fx || 1 }; });
+    action: t.action, qty: t.qty, price: t.price, brokerage: t.brokerage || 0, fx: t.fx || 1, account: t.account || "Default" }; });
   CUR.divs = pf.dividends.map(function(d){ var o = { date: new Date(d.date + "T00:00:00Z"), ticker: d.ticker,
-    cash: d.cash, franking: d.franking || 0, withholding: d.withholding || 0, fx: d.fx || 1 };
+    cash: d.cash, franking: d.franking || 0, withholding: d.withholding || 0, fx: d.fx || 1, account: d.account || "Default" };
     if(d.franking_credit != null) o.franking_credit = d.franking_credit; return o; });
+  try{ fillAccounts(await API.accounts()); }catch(e){}
   try{ var notes = await API.journal(); CUR.ann = {};
     notes.forEach(function(n){ CUR.ann[n.trade_key] = {setup:n.setup, confidence:n.confidence, notes:n.notes}; });
   }catch(e){ CUR.ann = {}; }
@@ -51,12 +52,26 @@ async function loadApp(){
   show("app"); render();
 }
 
+function selectedAccount(){ return $("acct-filter") ? $("acct-filter").value : "__all__"; }
 function buildResult(){
   var opt = { method: $("optimise") && $("optimise").checked ? "min_tax" : "fifo" };
   var inc = $("income") ? $("income").value : "flat";
   if(inc === "flat") opt.marginalRate = 0.37; else opt.otherIncome = parseFloat(inc);
-  var res = { broker: "server", trades: CUR.trades, dividends: CUR.divs, holdings: [], review: [] };
+  var acc = selectedAccount();
+  var trades = acc === "__all__" ? CUR.trades : CUR.trades.filter(function(t){ return t.account === acc; });
+  var divs   = acc === "__all__" ? CUR.divs   : CUR.divs.filter(function(d){ return d.account === acc; });
+  var res = { broker: "server", trades: trades, dividends: divs, holdings: [], review: [] };
   return HC.runPipeline([res], opt);
+}
+function onAccountFilter(){
+  var a = selectedAccount();
+  if(a !== "__all__"){ if($("m-account")) $("m-account").value = a; if($("imp-account")) $("imp-account").value = a; }
+  render();
+}
+function fillAccounts(list){
+  var sel = $("acct-filter"); if(!sel) return; var cur = sel.value;
+  sel.innerHTML = '<option value="__all__">All accounts</option>' + list.map(function(a){ return '<option>'+a+'</option>'; }).join("");
+  if(cur === "__all__" || list.indexOf(cur) >= 0) sel.value = cur;
 }
 function render(){
   if(!CUR.trades.length){ $("dash").innerHTML = '<div class=card style="text-align:center;padding:30px">'
@@ -91,8 +106,8 @@ function applyScreen(){ $("scr-body").innerHTML = HC.screenRows(screenFilters())
 function sortScreen(k){ if(SCREEN.sortKey===k) SCREEN.sortDir = SCREEN.sortDir==="asc"?"desc":"asc"; else { SCREEN.sortKey=k; SCREEN.sortDir="desc"; } applyScreen(); }
 
 /* ---- tabs (sidebar nav) ---- */
-var TABS = { dash:"dash", perf:"perf", journal:"journal", screener:"screener" };
-var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Journal", screener:"Screener" };
+var TABS = { dash:"dash", perf:"perf", journal:"journal", screener:"screener", add:"panel" };
+var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Journal", screener:"Screener", add:"Add / import" };
 function showTab(which){
   Object.keys(TABS).forEach(function(k){
     $(TABS[k]).style.display = k===which ? "block" : "none";
@@ -131,7 +146,8 @@ async function addTrade(){
   var qty=parseFloat($("m-qty").value), px=parseFloat($("m-price").value);
   if(!d||!tk||!(qty>0)||!(px>=0)){ alert("Enter date, ticker, quantity and price."); return; }
   var fx=(HC.SECURITIES[tk]&&HC.SECURITIES[tk].fx)||1.0;
-  await API.addTrade({date:d,ticker:tk,action:$("m-action").value,qty:qty,price:px,brokerage:parseFloat($("m-brk").value)||0,fx:fx});
+  var acct=($("m-account").value||"").trim()||(selectedAccount()!=="__all__"?selectedAccount():"Default");
+  await API.addTrade({date:d,ticker:tk,action:$("m-action").value,qty:qty,price:px,brokerage:parseFloat($("m-brk").value)||0,fx:fx,account:acct});
   $("m-ticker").value=$("m-qty").value=$("m-price").value=$("m-brk").value="";
   await loadApp();
 }
@@ -139,9 +155,10 @@ function importFiles(){
   var fs=[].slice.call($("files").files); if($("statement").files.length) fs.push($("statement").files[0]);
   if($("holdings").files.length) fs.push($("holdings").files[0]);
   if(!fs.length){ alert("Choose a CSV first."); return; }
+  var acct=($("imp-account").value||"").trim()||(selectedAccount()!=="__all__"?selectedAccount():"Default");
   var texts=[], done=0;
   fs.forEach(function(f){ var rd=new FileReader();
-    rd.onload=async function(){ texts.push(rd.result); if(++done===fs.length){ await API.importFiles(texts); await loadApp(); } };
+    rd.onload=async function(){ texts.push(rd.result); if(++done===fs.length){ await API.importFiles(texts, acct); await loadApp(); } };
     rd.readAsText(f); });
 }
 async function setIncome(){ var v=$("income").value; await API.setIncome(v==="flat"?null:parseFloat(v)); render(); }
