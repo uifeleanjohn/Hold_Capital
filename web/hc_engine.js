@@ -325,10 +325,9 @@ function renderDashboard(r){
    + '<div class="kpi k-green"><div class=l>YOU MADE</div><div class=v>'+money(made)+'</div><div class=s>Realised gains + dividends</div></div>'
    + '<div class="kpi k-ore"><div class=l>YOU\'LL OWE</div><div class=v>&asymp; '+money(r.tax.netTax)+'</div><div class=s>Est. extra tax from investing</div></div>'
    + '<div class="kpi k-blue"><div class=l>YOU CAN SAVE</div><div class=v>'+money(save)+'</div><div class=s>Acting before 30 June</div></div></div>';
-  h+='<h2>Exposure x-ray <span class="muted small">— what you hold now, '+money(r.xray.total)+'</span></h2><div class="card exp">';
-  r.xray.tags.forEach(function(t){ var col=TAG_COLOUR[t.tag]||"#888780";
-    h+='<div class=expr><div class=top><span>'+esc(t.tag)+'</span><span class=muted>'+money(t.value)+' &middot; '+(t.weight*100).toFixed(1)+'%</span></div>'
-     + '<div class=bar><i style="width:'+(t.weight*100)+'%;background:'+col+'"></i></div></div>'; });
+  h+='<h2>Exposure x-ray <span class="muted small">— what you hold now, '+money(r.xray.total)+'</span></h2><div class="card">';
+  h+=exposureHeatmap(r.xray);
+  h+='<div class="muted small" style="margin-top:9px">Sized by holding value · coloured by unrealised gain/loss · grouped by sector.</div>';
   h+='<div class="flag review" style="margin-top:6px">'+Math.round(r.xray.resourcesWeight*100)+'% of the book is in resource commodities.</div></div>';
   h+='<h2>Realised capital gains events</h2><div class=card style="padding:0;overflow:hidden"><table>'
    + '<tr><th>Holding</th><th>Acquired</th><th>Disposed</th><th class=r>Days</th><th class=r>Cost base</th><th class=r>Proceeds</th><th class=r>Gain / loss</th><th class=r>Disc.</th></tr>';
@@ -378,6 +377,33 @@ function chgPill(p){ var pos=p>=0,c=pos?"#36b37e":"#e5675f";
 }
 function statusPill(kind){ var m={win:["#36b37e","WIN"],loss:["#e5675f","LOSS"],open:["#8a93a0","OPEN"],flat:["#8a93a0","FLAT"]}; var x=m[kind]||m.open;
   return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:'+x[0]+'"><span style="width:7px;height:7px;border-radius:50%;background:'+x[0]+'"></span>'+x[1]+'</span>';
+}
+function heatColor(pct){ var p=Math.max(-15,Math.min(15,pct))/15;
+  if(p>=0) return {bg:"rgba(54,179,126,"+(0.16+p*0.62).toFixed(2)+")", fg:"#eafff4"};
+  var r=Math.abs(p); return {bg:"rgba(229,103,95,"+(0.16+r*0.62).toFixed(2)+")", fg:"#ffeceb"};
+}
+/* Treemap-style exposure heatmap: tiles sized by value, coloured by unrealised
+   gain/loss, grouped into rows by sector. Pure CSS flex — no library. */
+function exposureHeatmap(xray){
+  var pos=(xray.positions||[]).filter(function(p){return p.value>0;});
+  if(!pos.length) return '<p class="muted small">No open positions to map.</p>';
+  var total=xray.total||1, groups={};
+  pos.forEach(function(p){ (groups[p.tag]=groups[p.tag]||[]).push(p); });
+  var tags=Object.keys(groups).map(function(t){ var v=groups[t].reduce(function(s,p){return s+p.value;},0);
+    return {tag:t, value:v, items:groups[t].sort(function(a,b){return b.value-a.value;})}; })
+    .sort(function(a,b){return b.value-a.value;});
+  var h='<div style="display:flex;flex-direction:column;gap:3px;width:100%;height:300px">';
+  tags.forEach(function(g){
+    h+='<div style="display:flex;gap:3px;height:'+Math.max(g.value/total*100,6)+'%">';
+    g.items.forEach(function(p){
+      var cost=p.value-(p.unrealised||0), rpct=cost?(p.unrealised/cost*100):0, c=heatColor(rpct);
+      var big=p.value/total>0.035;
+      var lbl=big?('<div style="font-weight:700;font-size:12px;line-height:1.15">'+p.ticker+'</div>'+(p.unrealised?'<div style="font-size:10px;opacity:.9">'+(rpct>=0?"+":"")+rpct.toFixed(1)+'%</div>':'')):'';
+      h+='<div title="'+esc(p.name)+' · '+money(p.value)+(p.unrealised?(' · '+(p.unrealised>=0?"+":"")+money(p.unrealised)):'')+'" style="flex:'+p.value+' 1 0;min-width:0;background:'+c.bg+';color:'+c.fg+';border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding:2px;text-align:center">'+lbl+'</div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
 }
 
 var HC={SECURITIES:SECURITIES,importText:importText,runPipeline:runPipeline,renderDashboard:renderDashboard,
