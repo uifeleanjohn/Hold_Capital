@@ -138,6 +138,15 @@ def create_portfolio(body: PortfolioIn, user: User = Depends(auth.current_user),
         db.add(Portfolio(user_id=user.id, name=name)); db.commit()
     return {"portfolios": _portfolio_names(user, db)}
 
+@app.delete("/portfolio/trade/{trade_id}")
+def delete_trade(trade_id: int, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    t = db.get(Trade, trade_id)
+    if not t or t.user_id != user.id:
+        raise HTTPException(404, "Trade not found")
+    db.delete(t); db.commit()
+    return {"deleted": trade_id}
+
+
 @app.get("/accounts")
 def accounts(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     return _portfolio_names(user, db)
@@ -189,7 +198,7 @@ def import_csv(body: ImportIn, user: User = Depends(auth.current_user), db: Sess
 @app.get("/portfolio")
 def portfolio(user: User = Depends(auth.current_user)):
     return {
-        "trades": [{"date": t.date.isoformat(), "ticker": t.ticker, "action": t.action,
+        "trades": [{"id": t.id, "date": t.date.isoformat(), "ticker": t.ticker, "action": t.action,
                     "qty": t.qty, "price": t.price, "brokerage": t.brokerage or 0.0,
                     "fx": t.fx or 1.0, "source": t.source, "account": t.account or "All holdings"} for t in user.trades],
         "dividends": [{"date": d.date.isoformat(), "ticker": d.ticker, "cash": d.cash,

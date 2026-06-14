@@ -28,7 +28,7 @@ async function loadApp(){
     var s = HC.SECURITIES[p.ticker] || { name: p.ticker, exchange: "?", tag: "Unknown", ccy: p.currency };
     s.px = p.price; s.fx = p.fx; HC.SECURITIES[p.ticker] = s;
   });
-  CUR.trades = pf.trades.map(function(t){ return { date: new Date(t.date + "T00:00:00Z"), ticker: t.ticker,
+  CUR.trades = pf.trades.map(function(t){ return { id: t.id, date: new Date(t.date + "T00:00:00Z"), ticker: t.ticker,
     action: t.action, qty: t.qty, price: t.price, brokerage: t.brokerage || 0, fx: t.fx || 1, account: t.account || "All holdings" }; });
   CUR.divs = pf.dividends.map(function(d){ var o = { date: new Date(d.date + "T00:00:00Z"), ticker: d.ticker,
     cash: d.cash, franking: d.franking || 0, withholding: d.withholding || 0, fx: d.fx || 1, account: d.account || "All holdings" };
@@ -102,7 +102,7 @@ function render(){
   var r = buildResult();
   $("dash").innerHTML = HC.renderDashboard(r);
   $("perf").innerHTML = HC.renderPerformance(r);
-  $("journal").innerHTML = renderPositions() + HC.renderJournal(r.closedTrades, CUR.ann); wireJournal();
+  $("journal").innerHTML = renderQuickAdd() + renderPositions() + HC.renderJournal(r.closedTrades, CUR.ann) + renderAllTrades(); wireJournal();
   $("screener").innerHTML = HC.renderScreenerShell();
 }
 
@@ -152,9 +152,10 @@ function renderPositions(){
     });
     var totV=rows.reduce(function(s,r){return s+r.value;},0), totU=rows.reduce(function(s,r){return s+r.unreal;},0);
     var sc=totU>=0?"pos":"neg";
-    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">'
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
       + '<h3 style="margin:0">'+pesc(name)+'</h3>'
-      + (totV ? '<span class="muted small">'+M(totV)+' · <span class="'+sc+'">'+(totU>=0?"+":"")+M(totU)+'</span></span>' : '') + '</div>';
+      + '<div style="display:flex;align-items:center;gap:12px">'+(totV ? '<span class="muted small">'+M(totV)+' · <span class="'+sc+'">'+(totU>=0?"+":"")+M(totU)+'</span></span>' : '')
+      + '<button class="btn ghost sm" onclick="openQuickAddIdx('+PORTFOLIOS.indexOf(name)+')">+ Add</button></div></div>';
     if(!rows.length){ html += '<p class="muted small">No open positions in this portfolio.</p></div>'; return; }
     html += '<table><tr><th>Holding</th><th class=r>Qty</th><th class=r>Avg fill</th><th class=r>Last</th><th class=r>Value</th><th class=r>Unrealised</th><th></th></tr>';
     rows.forEach(function(r){
@@ -196,6 +197,52 @@ function toggleDet(i){ var d=$("det-"+i); if(!d) return;
 async function movePos(i){ var p=POSLIST[i]; if(!p) return; var to=$("pf-"+i+"-move").value; if(!to) return;
   try{ await API.movePosition(p.ticker, p.account, to); await loadApp(); }
   catch(e){ alert("Move failed: "+String(e).slice(0,100)); }
+}
+
+/* ---- journal quick-add + all-trades + delete ---- */
+function renderQuickAdd(){
+  var opts=(PORTFOLIOS.length?PORTFOLIOS:["All holdings"]).map(function(p){return '<option>'+p+'</option>';}).join("");
+  return '<div style="text-align:right;margin-top:2px"><button class="btn sm" onclick="toggleQuickAdd()">+ Add trade</button></div>'
+   + '<div id="jadd" class="card" style="display:none"><div class="row">'
+   + '<div><label class="fld" style="margin-top:0">Portfolio</label><select id="jq-acct">'+opts+'</select></div>'
+   + '<div><label class="fld" style="margin-top:0">Date</label><input id="jq-date" type="date" style="width:148px"></div>'
+   + '<div><label class="fld" style="margin-top:0">Ticker</label><input id="jq-ticker" type="text" placeholder="BHP / BTC / XAU" style="width:120px;text-transform:uppercase"></div>'
+   + '<div><label class="fld" style="margin-top:0">Side</label><select id="jq-action"><option>BUY</option><option>SELL</option></select></div>'
+   + '<div><label class="fld" style="margin-top:0">Qty</label><input id="jq-qty" type="number" placeholder="0" style="width:80px"></div>'
+   + '<div><label class="fld" style="margin-top:0">Price</label><input id="jq-price" type="number" placeholder="0.00" style="width:90px"></div>'
+   + '<div><label class="fld" style="margin-top:0">Brokerage</label><input id="jq-brk" type="number" placeholder="0.00" style="width:90px"></div>'
+   + '<div><label class="fld" style="margin-top:0">&nbsp;</label><button class="btn sm" onclick="jAddTrade()">Add trade</button></div>'
+   + '</div></div>';
+}
+function toggleQuickAdd(){ var f=$("jadd"); if(!f) return; f.style.display=f.style.display==="none"?"block":"none";
+  if(f.style.display==="block" && !$("jq-date").value) $("jq-date").value=new Date().toISOString().slice(0,10); }
+function openQuickAddIdx(i){ var f=$("jadd"); if(!f) return; f.style.display="block";
+  if($("jq-acct")&&PORTFOLIOS[i]) $("jq-acct").value=PORTFOLIOS[i];
+  if(!$("jq-date").value) $("jq-date").value=new Date().toISOString().slice(0,10);
+  f.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+async function jAddTrade(){
+  var d=$("jq-date").value, tk=($("jq-ticker").value||"").trim().toUpperCase();
+  var qty=parseFloat($("jq-qty").value), px=parseFloat($("jq-price").value);
+  if(!d||!tk||!(qty>0)||!(px>=0)){ alert("Enter date, ticker, quantity and price."); return; }
+  var fx=(HC.SECURITIES[tk]&&HC.SECURITIES[tk].fx)||1.0;
+  try{ await API.addTrade({date:d,ticker:tk,action:$("jq-action").value,qty:qty,price:px,brokerage:parseFloat($("jq-brk").value)||0,fx:fx,account:$("jq-acct").value}); await loadApp(); }
+  catch(e){ alert("Could not add: "+String(e).slice(0,100)); }
+}
+function renderAllTrades(){
+  if(!CUR.trades.length) return "";
+  var rows=CUR.trades.slice().sort(function(a,b){return b.date-a.date;}).map(function(t){
+    return '<tr><td><div style="display:flex;align-items:center;gap:8px">'+(HC.avatar?HC.avatar(t.ticker):'')+'<b>'+t.ticker+'</b></div></td>'
+      +'<td>'+pdate(t.date)+'</td><td>'+pesc(t.account)+'</td>'
+      +'<td><span class="'+(t.action==="BUY"?"pos":"neg")+'" style="font-weight:600">'+t.action+'</span></td>'
+      +'<td class=r>'+pround(t.qty)+'</td><td class=r>'+pprice(t.price)+'</td>'
+      +'<td class=r><button class="btn ghost sm" style="padding:4px 10px" onclick="deleteTrade('+t.id+')" title="Delete trade">&times;</button></td></tr>';
+  }).join("");
+  return '<h2>All trades <span class="muted small">— delete a mistaken entry here</span></h2><div class="card" style="padding:0;overflow:hidden"><table>'
+    +'<tr><th>Holding</th><th>Date</th><th>Portfolio</th><th>Side</th><th class=r>Qty</th><th class=r>Price</th><th></th></tr>'+rows+'</table></div>';
+}
+async function deleteTrade(id){
+  if(!confirm("Delete this trade? This can't be undone.")) return;
+  try{ await API.deleteTrade(id); await loadApp(); }catch(e){ alert("Delete failed: "+String(e).slice(0,100)); }
 }
 async function submitPos(i){
   var p = POSLIST[i]; if(!p) return;

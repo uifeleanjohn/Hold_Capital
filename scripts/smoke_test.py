@@ -134,6 +134,16 @@ moved_ok = mv.get("moved") == 1 and aapl and aapl[0]["account"] == "All holdings
 print(f"  moved AAPL US -> All holdings: {moved_ok}")
 acct_ok = ("US" in accts and "All holdings" in accts and len(us_trades) == 1
            and "Super" in plist and "Super" in created["portfolios"] and moved_ok)
+
+# add then delete a trade by id
+c.post("/portfolio/trade", headers=H, json={"date": "2026-01-05", "ticker": "TLS", "action": "BUY", "qty": 100, "price": 4, "account": "All holdings"})
+before = c.get("/portfolio", headers=H).json()["trades"]
+tls = [t for t in before if t["ticker"] == "TLS"][0]
+dl = c.delete("/portfolio/trade/" + str(tls["id"]), headers=H).json()
+after = c.get("/portfolio", headers=H).json()["trades"]
+del_ok = dl.get("deleted") == tls["id"] and not any(t["ticker"] == "TLS" for t in after) and "id" in before[0]
+print(f"  added + deleted a TLS trade by id: {del_ok}")
+acct_ok = acct_ok and del_ok
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
       and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok and acct_ok)
