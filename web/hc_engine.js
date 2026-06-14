@@ -362,9 +362,15 @@ function renderDashboard(r){
 
 /* ---------- shared UI atoms (self-contained inline styles) ---------- */
 var AV_COLOURS=["#378ADD","#D85A30","#1D9E75","#7F77DD","#EF9F27","#D4537E","#0F6E56","#534AB7","#185FA5","#BA7517"];
-function avatar(t){ t=(""+(t||"?")); var h=0; for(var i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))>>>0;
+var LOGO_EXCH={ASX:"AU",NASDAQ:"US",NYSE:"US"};   // EODHD logo country code by exchange
+function avatar(t){
+  t=(""+(t||"?")); var h=0; for(var i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))>>>0;
   var c=AV_COLOURS[h%AV_COLOURS.length];
-  return '<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:'+c+'26;color:'+c+';font-size:10px;font-weight:700;flex-shrink:0;letter-spacing:-.02em">'+t.slice(0,2).toUpperCase()+'</span>';
+  var sec=SECURITIES[t], code=sec?LOGO_EXCH[sec.exchange]:null;
+  // Real company logo from EODHD's 40k logo CDN (ASX + US); falls back to the
+  // coloured initials underneath when the logo 404s (crypto, metals, obscure tickers).
+  var img = code ? '<img src="https://eodhd.com/img/logos/'+code+'/'+t+'.png" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:contain;background:#fff">' : '';
+  return '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:'+c+'26;color:'+c+';font-size:10px;font-weight:700;flex-shrink:0;overflow:hidden;letter-spacing:-.02em">'+t.slice(0,2).toUpperCase()+img+'</span>';
 }
 function chgPill(p){ var pos=p>=0,c=pos?"#36b37e":"#e5675f";
   var v=(typeof p==="number")?((p%1===0)?p:p.toFixed(1)):p;
