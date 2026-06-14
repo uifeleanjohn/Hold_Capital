@@ -89,6 +89,15 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
         </div>
       </div>
     </div>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+      <label class="fld" style="margin-top:0">Auto-import from your broker <span class="pill">beta</span></label>
+      <p class="muted small" style="margin:0 0 6px">Forward broker trade-confirmation emails to your address and trades appear automatically:</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <code id="inbox-addr" style="background:var(--panel);padding:6px 10px;border-radius:8px;font-size:13px">loading…</code>
+        <button class="btn ghost sm" onclick="copyInbox()">Copy</button>
+      </div>
+      <p id="inbox-recent" class="muted small" style="margin-top:6px"></p>
+    </div>
     <div class="row" style="margin-top:10px">
       <div><label class="fld" style="margin-top:0">Tax basis</label>
         <select id="income" onchange="setIncome()">

@@ -16,6 +16,7 @@ class User(Base):
     tier = Column(String(10), default="free")          # free | plus | pro
     stripe_customer_id = Column(String(64), nullable=True)
     subscription_status = Column(String(20), nullable=True)
+    inbox_token = Column(String(32), unique=True, nullable=True)  # per-user email address token
     created_at = Column(DateTime, default=datetime.utcnow)
     trades = relationship("Trade", back_populates="user", cascade="all, delete-orphan")
     dividends = relationship("Dividend", back_populates="user", cascade="all, delete-orphan")
@@ -32,7 +33,8 @@ class Trade(Base):
     price = Column(Float, nullable=False)
     brokerage = Column(Float, default=0.0)
     fx = Column(Float, default=1.0)                    # AUD per unit of local currency
-    source = Column(String(20), default="manual")     # manual | commsec | stake | ...
+    source = Column(String(24), default="manual")     # manual | commsec | email:commsec | ...
+    source_ref = Column(String(80), nullable=True)    # broker confirmation ref (for dedup)
     user = relationship("User", back_populates="trades")
 
 

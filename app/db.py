@@ -29,3 +29,20 @@ def get_db():
 def init_db():
     from . import models  # noqa: F401  (register models)
     Base.metadata.create_all(bind=engine)
+    _ensure_columns()
+
+
+def _ensure_columns():
+    """Lightweight forward-migration: add new columns to existing tables.
+    Idempotent — errors (column already exists) are ignored. Avoids needing a
+    full migration tool for this prototype."""
+    stmts = [
+        "ALTER TABLE users ADD COLUMN inbox_token VARCHAR(32)",
+        "ALTER TABLE trades ADD COLUMN source_ref VARCHAR(80)",
+    ]
+    for s in stmts:
+        try:
+            with engine.begin() as conn:
+                conn.exec_driver_sql(s)
+        except Exception:
+            pass

@@ -23,6 +23,7 @@ var API = (function () {
     journal:()=>j("GET","/journal"),
     saveNote:(n)=>j("POST","/journal",n),
     checkout:(tier)=>j("POST","/billing/checkout",{tier}),
-    billingStatus:()=>j("GET","/billing/status")
+    billingStatus:()=>j("GET","/billing/status"),
+    inboxAddress:()=>j("GET","/inbox/address")
   };
 })();

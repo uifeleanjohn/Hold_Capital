@@ -1,6 +1,7 @@
 """HoldCapital API — Phase A.
 Auth, portfolio (import/manual), price refresh, and an engine-backed dashboard."""
 import os
+import secrets
 import tempfile
 from datetime import date
 
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from .db import get_db, init_db
 from .models import User, Trade, Dividend, PriceCache, JournalNote
-from . import auth, bridge, marketdata, billing, config
+from . import auth, bridge, marketdata, billing, config, email_parser
 from .core import importer
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -198,6 +199,58 @@ def pro_edge(user: User = Depends(require_tier("plus", "pro")), db: Session = De
     """Demonstrates feature gating — Pro/Plus only."""
     d = bridge.run_dashboard(db, user)
     return {"actions": d["actions"], "note": "parcel optimiser + pre-EOFY actions (paid tier)"}
+
+
+# ---------- broker auto-sync (email forwarding) ----------
+def _user_address(user) -> str:
+    return f"{config.INBOUND_LOCALPART}+{user.inbox_token}@{config.INBOUND_DOMAIN}"
+
+@app.get("/inbox/address")
+def inbox_address(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    if not user.inbox_token:
+        user.inbox_token = secrets.token_hex(8); db.add(user); db.commit()
+    recent = (db.query(Trade).filter(Trade.user_id == user.id, Trade.source.like("email:%"))
+              .order_by(Trade.id.desc()).limit(10).all())
+    return {
+        "address": _user_address(user),
+        "instructions": ("Forward your broker trade-confirmation emails to this address, or set it as a "
+                         "CC/notification address in your broker so new contract notes arrive automatically."),
+        "recent": [{"date": t.date.isoformat(), "ticker": t.ticker, "action": t.action,
+                    "qty": t.qty, "price": t.price, "source": t.source} for t in recent],
+    }
+
+@app.post("/inbox/webhook")
+async def inbox_webhook(request: Request, db: Session = Depends(get_db)):
+    """Inbound-email provider (e.g. Postmark) posts parsed emails here."""
+    if config.INBOUND_WEBHOOK_SECRET and request.query_params.get("secret") != config.INBOUND_WEBHOOK_SECRET:
+        raise HTTPException(403, "bad secret")
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(400, "expected a JSON inbound-email payload")
+    token = payload.get("MailboxHash") or ""
+    if not token:                                  # fall back to parsing the To address
+        to = payload.get("To") or (payload.get("ToFull") or [{}])[0].get("Email", "")
+        m = __import__("re").search(r"\+([0-9a-f]{8,32})@", to or "")
+        token = m.group(1) if m else ""
+    user = db.query(User).filter_by(inbox_token=token).first()
+    if not user:
+        raise HTTPException(404, "unknown inbox address")
+    subject = payload.get("Subject", "")
+    text = payload.get("TextBody") or payload.get("StrippedTextReply") or payload.get("HtmlBody", "")
+    from_email = (payload.get("FromFull") or {}).get("Email") or payload.get("From", "")
+    res = email_parser.parse(subject, text, from_email)
+    added = skipped = 0
+    for t in res["trades"]:
+        ref = t.get("source_ref")
+        if ref and db.query(Trade).filter_by(user_id=user.id, source_ref=ref).first():
+            skipped += 1; continue
+        db.add(Trade(user_id=user.id, date=t["date"], ticker=t["ticker"], action=t["action"],
+                     qty=t["qty"], price=t["price"], brokerage=t.get("brokerage", 0.0),
+                     fx=t.get("fx", 1.0), source="email:" + res["broker"], source_ref=ref))
+        added += 1
+    db.commit()
+    return {"broker": res["broker"], "added": added, "skipped": skipped, "review": res["review"]}
 
 
 # ---------- prices ----------

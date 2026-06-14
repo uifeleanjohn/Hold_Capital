@@ -18,3 +18,11 @@ PUBLIC_URL = os.environ.get("PUBLIC_URL", "http://127.0.0.1:5055")
 # CORS — comma-separated origins, or "*"
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
 
+# Inbound email (trade-confirmation auto-sync). The per-user address is
+#   {INBOUND_LOCALPART}+{token}@{INBOUND_DOMAIN}
+# For Postmark's default domain set INBOUND_LOCALPART to your inbound server hash;
+# for a custom inbound domain (MX -> provider) any localpart works.
+INBOUND_LOCALPART = os.environ.get("INBOUND_LOCALPART", "holdcapital")
+INBOUND_DOMAIN = os.environ.get("INBOUND_DOMAIN", "inbound.postmarkapp.com")
+INBOUND_WEBHOOK_SECRET = os.environ.get("INBOUND_WEBHOOK_SECRET", "")
+

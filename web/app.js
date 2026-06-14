@@ -38,6 +38,12 @@ async function loadApp(){
   }catch(e){ CUR.ann = {}; }
   $("topbar-email").textContent = CUR.me.email;
   $("tier-badge").textContent = CUR.me.tier;
+  try{
+    var inb = await API.inboxAddress();
+    $("inbox-addr").textContent = inb.address;
+    $("inbox-recent").textContent = inb.recent.length
+      ? (inb.recent.length + " trade(s) auto-imported recently.") : "No auto-imported trades yet.";
+  }catch(e){ $("inbox-addr").textContent = "(unavailable)"; }
   if($("income")) $("income").value = CUR.me.other_income ? String(CUR.me.other_income) : "flat";
   show("app"); render();
 }
@@ -113,6 +119,9 @@ async function upgrade(tier){
   try{ var s = await API.checkout(tier); if(s.url) window.location = s.url; }
   catch(e){ alert("Checkout error: "+String(e).slice(0,120)); }
 }
+
+function copyInbox(){ var t=$("inbox-addr").textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t); }
 
 /* ---- view switch ---- */
 function show(which){ $("login").style.display = which==="login"?"block":"none";

@@ -78,8 +78,31 @@ notes = c.get("/journal", headers=H).json()
 saved = any(n["trade_key"] == key and n["setup"] == "US large-cap hold" for n in notes)
 print(f"  bcrypt hashing: {is_bcrypt} | wrong password rejected: {wrong_pw == 401} | journal note saved server-side: {saved}")
 
+# ---- broker auto-sync (email forwarding) ----
+print("\nBROKER AUTO-SYNC:")
+addr = c.get("/inbox/address", headers=H).json()["address"]
+import re as _re
+tok = _re.search(r"\+([0-9a-f]+)@", addr).group(1)
+print(f"  forwarding address: {addr}")
+email_payload = {
+    "MailboxHash": tok,
+    "Subject": "CommSec Trade Confirmation",
+    "From": "donotreply@commsec.com.au",
+    "FromFull": {"Email": "donotreply@commsec.com.au"},
+    "TextBody": "Dear customer, your order has been executed. You BOUGHT 150 WES at $75.20 on 12/06/2026. "
+                "Brokerage: $10.00. Confirmation number: N0099887. Regards, CommSec.",
+}
+r1 = c.post("/inbox/webhook", json=email_payload).json()
+r2 = c.post("/inbox/webhook", json=email_payload).json()   # same email again -> dedup
+print(f"  first forward : broker={r1['broker']} added={r1['added']} skipped={r1['skipped']}")
+print(f"  same email again: added={r2['added']} skipped={r2['skipped']} (dedup)")
+ptf2 = c.get("/portfolio", headers=H).json()
+wes = [t for t in ptf2["trades"] if t["ticker"] == "WES" and t["source"].startswith("email")]
+print(f"  WES now in portfolio from email: {len(wes) == 1} (source: {wes[0]['source'] if wes else '-'})")
+
+email_ok = r1["added"] == 1 and r2["added"] == 0 and r2["skipped"] == 1 and len(wes) == 1
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
-      and is_bcrypt and wrong_pw == 401 and saved)
-print("\nVERIFY (engine + crypto + billing + UI + hardening):", "PASS" if ok else "FAIL")
+      and is_bcrypt and wrong_pw == 401 and saved and email_ok)
+print("\nVERIFY (engine + crypto + billing + UI + hardening + auto-sync):", "PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)
