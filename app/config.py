@@ -18,6 +18,10 @@ PUBLIC_URL = os.environ.get("PUBLIC_URL", "http://127.0.0.1:5055")
 # CORS — comma-separated origins, or "*"
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
 
+# SnapTrade "connect your broker" (read-only aggregation). Blank -> stub mode.
+SNAPTRADE_CLIENT_ID = os.environ.get("SNAPTRADE_CLIENT_ID", "")
+SNAPTRADE_CONSUMER_KEY = os.environ.get("SNAPTRADE_CONSUMER_KEY", "")
+
 # Inbound email (trade-confirmation auto-sync). The per-user address is
 #   {INBOUND_LOCALPART}+{token}@{INBOUND_DOMAIN}
 # For Postmark's default domain set INBOUND_LOCALPART to your inbound server hash;

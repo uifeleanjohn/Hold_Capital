@@ -38,6 +38,7 @@ def _ensure_columns():
     full migration tool for this prototype."""
     stmts = [
         "ALTER TABLE users ADD COLUMN inbox_token VARCHAR(32)",
+        "ALTER TABLE users ADD COLUMN snaptrade_user_secret VARCHAR(128)",
         "ALTER TABLE trades ADD COLUMN source_ref VARCHAR(80)",
     ]
     for s in stmts:

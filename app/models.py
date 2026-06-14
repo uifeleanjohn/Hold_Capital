@@ -17,6 +17,7 @@ class User(Base):
     stripe_customer_id = Column(String(64), nullable=True)
     subscription_status = Column(String(20), nullable=True)
     inbox_token = Column(String(32), unique=True, nullable=True)  # per-user email address token
+    snaptrade_user_secret = Column(String(128), nullable=True)    # SnapTrade per-user secret
     created_at = Column(DateTime, default=datetime.utcnow)
     trades = relationship("Trade", back_populates="user", cascade="all, delete-orphan")
     dividends = relationship("Dividend", back_populates="user", cascade="all, delete-orphan")

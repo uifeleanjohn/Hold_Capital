@@ -101,8 +101,21 @@ wes = [t for t in ptf2["trades"] if t["ticker"] == "WES" and t["source"].startsw
 print(f"  WES now in portfolio from email: {len(wes) == 1} (source: {wes[0]['source'] if wes else '-'})")
 
 email_ok = r1["added"] == 1 and r2["added"] == 0 and r2["skipped"] == 1 and len(wes) == 1
+
+# ---- connect-your-broker (SnapTrade, stub mode) ----
+print("\nCONNECT BROKER (SnapTrade):")
+conn = c.post("/broker/connect", headers=H).json()
+print(f"  connect ({'stub' if conn['stub_mode'] else 'live'}) -> {conn['url']}")
+s1 = c.post("/broker/sync", headers=H).json()
+s2 = c.post("/broker/sync", headers=H).json()   # re-sync -> dedup
+st = c.get("/broker/status", headers=H).json()
+print(f"  first sync: added={s1['added']} skipped={s1['skipped']} | re-sync: added={s2['added']} skipped={s2['skipped']}")
+print(f"  status: connected={st['connected']}")
+ptf3 = c.get("/portfolio", headers=H).json()
+snaptrade_trades = [t for t in ptf3["trades"] if t["source"] == "snaptrade"]
+broker_ok = s1["added"] == 2 and s2["added"] == 0 and s2["skipped"] == 2 and st["connected"] and len(snaptrade_trades) == 2
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
-      and is_bcrypt and wrong_pw == 401 and saved and email_ok)
-print("\nVERIFY (engine + crypto + billing + UI + hardening + auto-sync):", "PASS" if ok else "FAIL")
+      and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok)
+print("\nVERIFY (engine + crypto + billing + UI + hardening + email + broker connect):", "PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)

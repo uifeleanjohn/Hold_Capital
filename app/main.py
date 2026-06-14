@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from .db import get_db, init_db
 from .models import User, Trade, Dividend, PriceCache, JournalNote
-from . import auth, bridge, marketdata, billing, config, email_parser
+from . import auth, bridge, marketdata, billing, config, email_parser, broker
 from .core import importer
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -251,6 +251,44 @@ async def inbox_webhook(request: Request, db: Session = Depends(get_db)):
         added += 1
     db.commit()
     return {"broker": res["broker"], "added": added, "skipped": skipped, "review": res["review"]}
+
+
+# ---------- connect your broker (SnapTrade) ----------
+@app.get("/broker/status")
+def broker_status(user: User = Depends(auth.current_user)):
+    return {"connected": bool(user.snaptrade_user_secret), "stub_mode": broker.STUB}
+
+@app.post("/broker/connect")
+def broker_connect(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    """Register the user with SnapTrade and return the connection-portal URL."""
+    secret = broker.register(user)
+    if user.snaptrade_user_secret != secret:
+        user.snaptrade_user_secret = secret; db.add(user); db.commit()
+    return {"url": broker.connect_url(user, secret), "stub_mode": broker.STUB}
+
+@app.post("/broker/sync")
+def broker_sync(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    """Pull read-only activities from the connected broker and import as trades."""
+    secret = user.snaptrade_user_secret or broker.register(user)
+    user.snaptrade_user_secret = secret
+    added = skipped = 0
+    for t in broker.pull_trades(user, secret):
+        ref = t.get("source_ref")
+        if ref and db.query(Trade).filter_by(user_id=user.id, source_ref=ref).first():
+            skipped += 1; continue
+        db.add(Trade(user_id=user.id, date=t["date"], ticker=t["ticker"], action=t["action"],
+                     qty=t["qty"], price=t["price"], brokerage=t.get("brokerage", 0.0),
+                     fx=t.get("fx", 1.0), source="snaptrade", source_ref=ref))
+        added += 1
+    db.add(user); db.commit()
+    return {"added": added, "skipped": skipped}
+
+@app.get("/broker/stub-connect")
+def broker_stub_connect():
+    if not broker.STUB:
+        raise HTTPException(404)
+    return FileResponse(os.path.join(WEB_DIR, "stub_connect.html")) if os.path.exists(
+        os.path.join(WEB_DIR, "stub_connect.html")) else {"message": "Demo broker connected — go back and click Sync."}
 
 
 # ---------- prices ----------

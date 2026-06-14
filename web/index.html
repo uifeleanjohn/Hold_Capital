@@ -97,6 +97,11 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
         <button class="btn ghost sm" onclick="copyInbox()">Copy</button>
       </div>
       <p id="inbox-recent" class="muted small" style="margin-top:6px"></p>
+      <div style="margin-top:10px">
+        <button class="btn ghost sm" onclick="brokerConnect()">Connect your broker</button>
+        <button class="btn ghost sm" onclick="brokerSync()">Sync trades</button>
+        <span id="broker-status" class="muted small" style="margin-left:6px"></span>
+      </div>
     </div>
     <div class="row" style="margin-top:10px">
       <div><label class="fld" style="margin-top:0">Tax basis</label>

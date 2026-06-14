@@ -44,6 +44,9 @@ async function loadApp(){
     $("inbox-recent").textContent = inb.recent.length
       ? (inb.recent.length + " trade(s) auto-imported recently.") : "No auto-imported trades yet.";
   }catch(e){ $("inbox-addr").textContent = "(unavailable)"; }
+  try{ var bs = await API.brokerStatus();
+    $("broker-status").textContent = bs.connected ? "broker connected" : (bs.stub_mode ? "(demo mode)" : "");
+  }catch(e){}
   if($("income")) $("income").value = CUR.me.other_income ? String(CUR.me.other_income) : "flat";
   show("app"); render();
 }
@@ -122,6 +125,19 @@ async function upgrade(tier){
 
 function copyInbox(){ var t=$("inbox-addr").textContent;
   if(navigator.clipboard) navigator.clipboard.writeText(t); }
+
+async function brokerConnect(){
+  try{ var r = await API.brokerConnect();
+    if(r.stub_mode) $("broker-status").textContent = "(demo mode — no keys set)";
+    if(r.url) window.open(r.url, "_blank");
+  }catch(e){ alert("Connect error: "+String(e).slice(0,120)); }
+}
+async function brokerSync(){
+  try{ var r = await API.brokerSync();
+    alert("Synced from broker: "+r.added+" new trade(s), "+r.skipped+" already had.");
+    await loadApp();
+  }catch(e){ alert("Sync error: "+String(e).slice(0,120)); }
+}
 
 /* ---- view switch ---- */
 function show(which){ $("login").style.display = which==="login"?"block":"none";
