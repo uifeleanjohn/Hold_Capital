@@ -123,7 +123,7 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
     <nav class="nav">
       <button class="active" id="tab-dash" onclick="showTab('dash')"><i class="ti ti-coin"></i> Tax &amp; exposure</button>
       <button id="tab-perf" onclick="showTab('perf')"><i class="ti ti-chart-line"></i> Performance</button>
-      <button id="tab-journal" onclick="showTab('journal')"><i class="ti ti-notebook"></i> Journal</button>
+      <button id="tab-journal" onclick="showTab('journal')"><i class="ti ti-notebook"></i> Holdings</button>
       <button id="tab-screener" onclick="showTab('screener')"><i class="ti ti-list-search"></i> Screener</button>
       <button id="tab-add" onclick="showTab('add')"><i class="ti ti-plus"></i> Add / import</button>
     </nav>
@@ -143,6 +143,16 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
         <span class="muted small">Portfolio</span>
         <select id="acct-filter" onchange="onAccountFilter()"><option value="__all__">All accounts</option></select>
       </div></div>
+
+    <div id="taxbar" style="display:none;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+      <div><label class="fld" style="margin-top:0">Your tax basis</label>
+        <select id="income" onchange="setIncome()">
+          <option value="flat">Flat 37%</option><option value="90000">Bracket — $90k income</option>
+          <option value="120000">Bracket — $120k income</option><option value="160000">Bracket — $160k income</option>
+          <option value="200000">Bracket — $200k income</option></select></div>
+      <div class="chk" style="margin-bottom:8px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection</label></div>
+      <button class="btn ghost sm" style="margin-bottom:4px" onclick="downloadReport()">&#8595; Download tax report (PDF)</button>
+    </div>
 
     <div id="panel" style="display:none">
       <div class="card">
@@ -197,17 +207,6 @@ select,input[type=number],input[type=text],input[type=date],input[type=email],in
         <p id="inbox-recent" class="muted small" style="margin-top:8px"></p>
       </div>
 
-      <div class="card">
-        <h3 style="margin:0 0 10px">Calculation settings</h3>
-        <div class="row">
-          <div><label class="fld" style="margin-top:0">Tax basis</label>
-            <select id="income" onchange="setIncome()">
-              <option value="flat">Flat 37%</option><option value="90000">Brackets — $90k income</option>
-              <option value="120000">Brackets — $120k income</option><option value="160000">Brackets — $160k income</option>
-              <option value="200000">Brackets — $200k income</option></select></div>
-          <div class="chk" style="margin-top:22px"><input id="optimise" type="checkbox" onchange="render()"> <label for="optimise">Optimise parcel selection (specific ID)</label></div>
-        </div>
-      </div>
     </div>
 
     <div id="dash"></div>

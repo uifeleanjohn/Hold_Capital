@@ -393,6 +393,16 @@ def dashboard(user: User = Depends(auth.current_user), db: Session = Depends(get
     return bridge.run_dashboard(db, user)
 
 
+@app.get("/report.pdf")
+def report_pdf(account: str | None = None, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    """Tax report PDF for the accountant — one portfolio, or all if no account given."""
+    from .core import report
+    result = bridge.compute(db, user, account)
+    path = os.path.join(tempfile.gettempdir(), f"hc_report_{user.id}.pdf")
+    report.build(result, path)
+    return FileResponse(path, media_type="application/pdf", filename="HoldCapital_tax_report.pdf")
+
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}

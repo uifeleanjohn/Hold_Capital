@@ -144,6 +144,12 @@ after = c.get("/portfolio", headers=H).json()["trades"]
 del_ok = dl.get("deleted") == tls["id"] and not any(t["ticker"] == "TLS" for t in after) and "id" in before[0]
 print(f"  added + deleted a TLS trade by id: {del_ok}")
 acct_ok = acct_ok and del_ok
+
+# tax report PDF export
+rep = c.get("/report.pdf", headers=H)
+rep_ok = rep.status_code == 200 and "pdf" in rep.headers.get("content-type", "") and len(rep.content) > 1500
+print(f"  tax report PDF export: {rep.status_code}, {len(rep.content)} bytes -> {rep_ok}")
+acct_ok = acct_ok and rep_ok
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
       and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok and acct_ok)

@@ -18,6 +18,35 @@ def _securities(db, tickers):
     return secs
 
 
+def compute(db, user, account=None):
+    """Raw engine result (objects, not JSON) for the PDF report. Optionally
+    filter to one portfolio; otherwise all portfolios."""
+    raw_t = [t for t in user.trades if account is None or (t.account or "All holdings") == account]
+    raw_d = [d for d in user.dividends if account is None or (d.account or "All holdings") == account]
+    trades = [{"date": t.date, "ticker": t.ticker, "action": t.action, "qty": t.qty,
+               "price": t.price, "brokerage": t.brokerage or 0.0, "fx": t.fx or 1.0} for t in raw_t]
+    divs = []
+    for d in raw_d:
+        row = {"date": d.date, "ticker": d.ticker, "cash": d.cash, "franking": d.franking or 0.0,
+               "withholding": d.withholding or 0.0, "fx": d.fx or 1.0}
+        if d.franking_credit is not None:
+            row["franking_credit"] = d.franking_credit
+        divs.append(row)
+    statement = [d for d in divs if "franking_credit" in d]
+    if statement:
+        divs = statement + [d for d in divs if "franking_credit" not in d and d["fx"] != 1.0]
+    secs = _securities(db, {t["ticker"] for t in trades} | {d["ticker"] for d in divs})
+    acct = engine.Account(other_income=user.other_income)
+    events, open_parcels = engine.match_parcels(secs, trades, acct)
+    cgt = engine.compute_cgt(events, acct)
+    income = engine.compute_income(divs, acct)
+    tax = engine.estimate_tax(cgt, income, acct)
+    xray = engine.exposure_xray(secs, open_parcels)
+    actions = engine.optimise(secs, open_parcels, cgt, acct)
+    return {"account": acct, "cgt": cgt, "income": income, "tax": tax, "xray": xray,
+            "actions": actions, "portfolio_label": account or "All portfolios"}
+
+
 def run_dashboard(db, user):
     trades = [{"date": t.date, "ticker": t.ticker, "action": t.action, "qty": t.qty,
                "price": t.price, "brokerage": t.brokerage or 0.0, "fx": t.fx or 1.0} for t in user.trades]

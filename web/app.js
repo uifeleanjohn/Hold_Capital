@@ -55,7 +55,7 @@ async function loadApp(){
     $("broker-status").textContent = bs.connected ? "broker connected" : (bs.stub_mode ? "(demo mode)" : "");
   }catch(e){}
   if($("income")) $("income").value = CUR.me.other_income ? String(CUR.me.other_income) : "flat";
-  show("app"); render();
+  show("app"); render(); showTab("dash");
 }
 
 function selectedAccount(){ return $("acct-filter") ? $("acct-filter").value : "__all__"; }
@@ -255,13 +255,25 @@ function sortScreen(k){ if(SCREEN.sortKey===k) SCREEN.sortDir = SCREEN.sortDir==
 
 /* ---- tabs (sidebar nav) ---- */
 var TABS = { dash:"dash", perf:"perf", journal:"journal", screener:"screener", add:"panel" };
-var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Journal", screener:"Screener", add:"Add / import" };
+var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Holdings", screener:"Screener", add:"Add / import" };
 function showTab(which){
   Object.keys(TABS).forEach(function(k){
     $(TABS[k]).style.display = k===which ? "block" : "none";
     $("tab-"+k).className = k===which ? "active" : "";
   });
   if($("page-title")) $("page-title").textContent = TITLES[which];
+  if($("taxbar")) $("taxbar").style.display = which==="dash" ? "flex" : "none";
+}
+async function downloadReport(){
+  var acc = selectedAccount();
+  var qs = acc === "__all__" ? "" : "?account=" + encodeURIComponent(acc);
+  try{
+    var r = await fetch("/report.pdf" + qs, { headers: { Authorization: "Bearer " + API.token() } });
+    if(!r.ok) throw new Error(await r.text());
+    var blob = await r.blob(), url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url;
+    a.download = "HoldCapital_tax_report.pdf"; a.click(); URL.revokeObjectURL(url);
+  }catch(e){ alert("Report error: " + String(e).slice(0,140)); }
 }
 function togglePanel(){ var p=$("panel"); p.style.display = p.style.display==="none" ? "block" : "none"; }
 
