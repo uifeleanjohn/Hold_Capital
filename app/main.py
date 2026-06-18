@@ -13,7 +13,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from .db import get_db, init_db
-from .models import User, Trade, Dividend, PriceCache, JournalNote, Portfolio
+from .models import User, Trade, Dividend, PriceCache, JournalNote, Portfolio, Watchlist
 from . import auth, bridge, marketdata, billing, config, email_parser, broker
 from .core import importer
 
@@ -150,6 +150,29 @@ def delete_trade(trade_id: int, user: User = Depends(auth.current_user), db: Ses
 @app.get("/accounts")
 def accounts(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
     return _portfolio_names(user, db)
+
+
+# ---------- watchlist ----------
+class WatchIn(BaseModel):
+    ticker: str
+
+@app.get("/watchlist")
+def get_watchlist(user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    return [w.ticker for w in db.query(Watchlist).filter(Watchlist.user_id == user.id)]
+
+@app.post("/watchlist")
+def add_watch(body: WatchIn, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    tk = (body.ticker or "").strip().upper()[:12]
+    if tk and not db.query(Watchlist).filter_by(user_id=user.id, ticker=tk).first():
+        db.add(Watchlist(user_id=user.id, ticker=tk)); db.commit()
+    return {"watchlist": [w.ticker for w in db.query(Watchlist).filter(Watchlist.user_id == user.id)]}
+
+@app.delete("/watchlist/{ticker}")
+def remove_watch(ticker: str, user: User = Depends(auth.current_user), db: Session = Depends(get_db)):
+    w = db.query(Watchlist).filter_by(user_id=user.id, ticker=ticker.upper()).first()
+    if w:
+        db.delete(w); db.commit()
+    return {"deleted": ticker.upper()}
 
 class MoveIn(BaseModel):
     ticker: str

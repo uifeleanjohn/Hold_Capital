@@ -150,6 +150,15 @@ rep = c.get("/report.pdf", headers=H)
 rep_ok = rep.status_code == 200 and "pdf" in rep.headers.get("content-type", "") and len(rep.content) > 1500
 print(f"  tax report PDF export: {rep.status_code}, {len(rep.content)} bytes -> {rep_ok}")
 acct_ok = acct_ok and rep_ok
+
+# watchlist add / list / remove
+c.post("/watchlist", headers=H, json={"ticker": "NST"})
+wl = c.get("/watchlist", headers=H).json()
+c.delete("/watchlist/NST", headers=H)
+wl2 = c.get("/watchlist", headers=H).json()
+watch_ok = "NST" in wl and "NST" not in wl2
+print(f"  watchlist add/remove: {watch_ok}")
+acct_ok = acct_ok and watch_ok
 ok = (abs(d["net_capital_gain"] - 3668.68) < 0.01 and imp["trades_added"] == 16 and has_crypto
       and who2["tier"] == "pro" and edge == 200 and root.status_code == 200 and has_fields
       and is_bcrypt and wrong_pw == 401 and saved and email_ok and broker_ok and acct_ok)

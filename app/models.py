@@ -74,6 +74,14 @@ class Portfolio(Base):
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_portfolio"),)
 
 
+class Watchlist(Base):
+    __tablename__ = "watchlist"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    ticker = Column(String(12), nullable=False)
+    __table_args__ = (UniqueConstraint("user_id", "ticker", name="uq_user_watch"),)
+
+
 class PriceCache(Base):
     __tablename__ = "price_cache"
     ticker = Column(String(12), primary_key=True)

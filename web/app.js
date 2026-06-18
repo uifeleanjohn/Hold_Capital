@@ -40,6 +40,7 @@ async function loadApp(){
     if(!s.exchange || s.exchange==="?") s.exchange = (t.fx && t.fx>1.01) ? "NASDAQ" : "ASX";
   });
   try{ fillPortfolios(await API.portfolios()); }catch(e){}
+  try{ CUR.watch = await API.watchlist(); }catch(e){ CUR.watch = []; }
   try{ var notes = await API.journal(); CUR.ann = {};
     notes.forEach(function(n){ CUR.ann[n.trade_key] = {setup:n.setup, confidence:n.confidence, notes:n.notes}; });
   }catch(e){ CUR.ann = {}; }
@@ -98,12 +99,14 @@ async function createPortfolio(){
 function render(){
   if(!CUR.trades.length){ $("dash").innerHTML = '<div class=card style="text-align:center;padding:30px">'
     + '<p class=muted>No holdings yet. Add a trade or import a CSV above to see your dashboard.</p></div>';
-    $("perf").innerHTML = $("journal").innerHTML = ""; $("screener").innerHTML = HC.renderScreenerShell(); return; }
+    $("perf").innerHTML = ""; $("journal").innerHTML = renderQuickAdd();
+    $("screener").innerHTML = HC.renderScreenerShell(); $("watch").innerHTML = HC.renderWatchlist(CUR.watch || []); return; }
   var r = buildResult();
   $("dash").innerHTML = HC.renderDashboard(r);
   $("perf").innerHTML = HC.renderPerformance(r);
   $("journal").innerHTML = renderQuickAdd() + renderPositions() + HC.renderJournal(r.closedTrades, CUR.ann) + renderAllTrades(); wireJournal();
   $("screener").innerHTML = HC.renderScreenerShell();
+  $("watch").innerHTML = HC.renderWatchlist(CUR.watch || []);
 }
 
 /* ---- journal annotations (per user, local) ---- */
@@ -254,8 +257,11 @@ function applyScreen(){ $("scr-body").innerHTML = HC.screenRows(screenFilters())
 function sortScreen(k){ if(SCREEN.sortKey===k) SCREEN.sortDir = SCREEN.sortDir==="asc"?"desc":"asc"; else { SCREEN.sortKey=k; SCREEN.sortDir="desc"; } applyScreen(); }
 
 /* ---- tabs (sidebar nav) ---- */
-var TABS = { dash:"dash", perf:"perf", journal:"journal", screener:"screener", add:"panel" };
-var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Holdings", screener:"Screener", add:"Add / import" };
+var TABS = { dash:"dash", perf:"perf", journal:"journal", screener:"screener", watch:"watch", add:"panel" };
+var TITLES = { dash:"Tax & exposure", perf:"Performance", journal:"Holdings", screener:"Screener", watch:"Watchlist", add:"Add / import" };
+async function watchFromScreener(tk){ try{ var r=await API.addWatch(tk); CUR.watch=r.watchlist||CUR.watch; if($("watch")) $("watch").innerHTML=HC.renderWatchlist(CUR.watch); }catch(e){} }
+async function removeWatch(tk){ try{ await API.removeWatch(tk); CUR.watch=(CUR.watch||[]).filter(function(x){return x!==tk;}); if($("watch")) $("watch").innerHTML=HC.renderWatchlist(CUR.watch); }catch(e){} }
+function wToggle(tk){ var r=$("w-"+tk); if(r) r.style.display=r.style.display==="none"?"table-row":"none"; }
 function showTab(which){
   Object.keys(TABS).forEach(function(k){
     $(TABS[k]).style.display = k===which ? "block" : "none";

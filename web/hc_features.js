@@ -139,7 +139,8 @@ function screenRows(f){
      + '<td class=r>'+(u.ccy==="USD"?"US$":"$")+u.px.toFixed(2)+'</td>'
      + '<td class=r>$'+u.mcap+'b</td><td class=r>'+(u.pe>0?u.pe.toFixed(1):"—")+'</td>'
      + '<td class=r>'+(u.dy>0?u.dy.toFixed(1)+"%":"—")+'</td>'
-     + '<td class=r>'+(HC.chgPill?HC.chgPill(u.ret1y):((u.ret1y>=0?"+":"")+u.ret1y+'%'))+'</td></tr>'; }).join("");
+     + '<td class=r>'+(HC.chgPill?HC.chgPill(u.ret1y):((u.ret1y>=0?"+":"")+u.ret1y+'%'))+'</td>'
+     + '<td class=r><button class="btn ghost sm" onclick="if(window.watchFromScreener)watchFromScreener(\''+u.ticker+'\')">+ Watch</button></td></tr>'; }).join("");
 }
 function renderScreenerShell(){
   var secOpts='<option value=all>All sectors</option>'+SECTORS.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join("");
@@ -156,12 +157,39 @@ function renderScreenerShell(){
    + '<div><label class=fld style="margin-top:0">Min mkt cap $b</label><input id=scr-mc type=number placeholder="any" style="width:110px" oninput=applyScreen()></div>'
    + '<div><label class=fld style="margin-top:0">Search</label><input id=scr-q placeholder="ticker / name" oninput=applyScreen()></div>'
    + '</div></div>';
-  h+='<div class=card style="padding:0;overflow-x:auto"><table style="min-width:720px"><thead><tr>'+head+'</tr></thead><tbody id=scr-body>'+screenRows({sortKey:"mcap",sortDir:"desc"})+'</tbody></table></div>';
+  h+='<div class=card style="padding:0;overflow-x:auto"><table style="min-width:760px"><thead><tr>'+head+'<th></th></tr></thead><tbody id=scr-body>'+screenRows({sortKey:"mcap",sortDir:"desc"})+'</tbody></table></div>';
   h+='<p class=muted style="font-size:12px;margin-top:8px">Static sample universe of '+UNIVERSE.length+' stocks. A live screener pulls prices and fundamentals from a market-data feed.</p>';
   return h;
 }
 
-HC.UNIVERSE=UNIVERSE; HC.SECTORS=SECTORS; HC.screen=screen; HC.screenRows=screenRows;
+var UNI_BY_TKR={}; UNIVERSE.forEach(function(u){ UNI_BY_TKR[u.ticker]=u; });
+function ccyPrefix(u){ return u && u.ccy==="USD" ? "US$" : "$"; }
+function renderWatchlist(tickers){
+  if(!tickers || !tickers.length)
+    return '<h2 style="margin-top:6px">Watchlist</h2><div class="card" style="text-align:center;padding:34px"><p class="muted">Your watchlist is empty. Add stocks from the <b>Screener</b> tab using the <b>+ Watch</b> button.</p></div>';
+  var body=tickers.map(function(tk){
+    var u=UNI_BY_TKR[tk], name=u?u.name:tk, sector=u?u.tag:"—";
+    var price=u?(ccyPrefix(u)+u.px.toLocaleString("en-AU",{minimumFractionDigits:2,maximumFractionDigits:2})):"—";
+    var av=(HC.avatar?HC.avatar(tk):'');
+    var stats = u ? ('<div style="display:flex;flex-wrap:wrap;gap:26px;padding:12px 4px">'
+      + statCell("Last", price) + statCell("Market cap", "$"+u.mcap+"b") + statCell("P/E", u.pe>0?u.pe.toFixed(1):"—")
+      + statCell("Dividend yield", u.dy>0?u.dy.toFixed(1)+"%":"—") + statCell("1-year", (HC.chgPill?HC.chgPill(u.ret1y):u.ret1y+"%"))
+      + statCell("52-week range", '<span class="muted">live feed</span>') + statCell("Analyst rating", '<span class="muted">live feed</span>')
+      + '</div><p class="muted small" style="margin:0 0 4px">Live 52-week range, analyst ratings, news and a price chart appear here once the market-data feed is connected.</p>')
+      : '<p class="muted small" style="padding:10px 4px">Not in the built-in universe — live stats appear with the data feed.</p>';
+    return '<tr><td><div style="display:flex;align-items:center;gap:9px">'+av+'<div><b>'+esc(name)+'</b><div class="muted" style="font-size:11px">'+tk+'</div></div></div></td>'
+      + '<td>'+esc(sector)+'</td><td class=r>'+price+'</td><td class=r>'+(u?('$'+u.mcap+'b'):"—")+'</td>'
+      + '<td class=r>'+(u&&u.pe>0?u.pe.toFixed(1):"—")+'</td><td class=r>'+(u?(HC.chgPill?HC.chgPill(u.ret1y):u.ret1y+"%"):"—")+'</td>'
+      + '<td class=r><button class="btn ghost sm" onclick="wToggle(\''+tk+'\')">Stats</button> <button class="btn ghost sm" onclick="removeWatch(\''+tk+'\')" title="Remove">&times;</button></td></tr>'
+      + '<tr id="w-'+tk+'" style="display:none"><td colspan=7 style="border-top:0;padding-top:0;background:var(--surface2)">'+stats+'</td></tr>';
+  }).join("");
+  return '<h2 style="margin-top:6px">Watchlist</h2><div class="card" style="padding:0;overflow:hidden"><table>'
+    + '<tr><th>Stock</th><th>Sector</th><th class=r>Last</th><th class=r>Mkt cap</th><th class=r>P/E</th><th class=r>1yr</th><th></th></tr>'
+    + body + '</table></div>';
+}
+function statCell(label,val){ return '<div><div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.03em">'+label+'</div><div style="font-size:15px;font-weight:600;margin-top:2px">'+val+'</div></div>'; }
+
+HC.UNIVERSE=UNIVERSE; HC.SECTORS=SECTORS; HC.screen=screen; HC.screenRows=screenRows; HC.renderWatchlist=renderWatchlist;
 HC.renderScreenerShell=renderScreenerShell; HC.computePerformance=computePerformance; HC.renderPerformance=renderPerformance;
 if(typeof module!=="undefined"&&module.exports) module.exports=HC;
 root.HC=HC;
